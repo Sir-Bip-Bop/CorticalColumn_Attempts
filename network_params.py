@@ -33,7 +33,7 @@ net_dict = {
     # neuron model
     "neuron_model": "iaf_psc_exp",
     # names of the simulated neuronal populations
-    "populations": ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"],
+    "populations": ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I",'TH'],
     # number of neurons in the different populations (same order as
     # 'populations')
     "full_num_neurons": np.array([20683, 5834, 21915, 5479, 4850, 1065, 14395, 2948]),
