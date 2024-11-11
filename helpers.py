@@ -202,21 +202,21 @@ def plot_raster(path, name, begin, end, N_scaling):
 
     """
     fs = 18  # fontsize
-    ylabels = ["L2/3", "L4", "L5", "L6"]
-    color_list = np.tile(["#595289", "#af143c"], 4)
+    ylabels = ["L2/3", "L4", "L5", "L6","TH"]
+    color_list = np.tile(["#595289", "#af143c"], 5)
 
     sd_names, node_ids, data = __load_spike_times(path, name, begin, end)
     last_node_id = node_ids[-1, -1]
     mod_node_ids = np.abs(node_ids - last_node_id) + 1
 
-    label_pos = [(mod_node_ids[i, 0] + mod_node_ids[i + 1, 1]) / 2.0 for i in np.arange(0, 8, 2)]
+    label_pos = [(mod_node_ids[i, 0] + mod_node_ids[i + 1, 1]) / 2.0 for i in np.arange(0, 10, 2)]
 
     stp = 1
     if N_scaling > 0.1:
         stp = int(10.0 * N_scaling)
         print("  Only spikes of neurons in steps of {} are shown.".format(stp))
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     for i, n in enumerate(sd_names):
         times = data[i]["time_ms"]
         neurons = np.abs(data[i]["sender"] - last_node_id) + 1
@@ -301,7 +301,7 @@ def boxplot(path, populations):
     for i in np.arange(len(populations))[::-1]:
         rates_per_neuron_rev.append(np.loadtxt(os.path.join(path, ("rate" + str(i) + ".dat"))))
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(10, 6))
     bp = plt.boxplot(
         rates_per_neuron_rev, 0, "rs", 0, medianprops=medianprops, meanprops=meanprops, meanline=True, showmeans=True
     )

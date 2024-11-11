@@ -24,6 +24,7 @@ def get_exc_inh_matrix(val_exc, val_inh, num_pops):
     matrix[:, 1:num_pops:2] = val_inh
     return matrix
 
+alpha = beta = gamma = delta = 0.3 
 
 net_dict = {
     # factor to scale the number of neurons
@@ -33,10 +34,11 @@ net_dict = {
     # neuron model
     "neuron_model": "iaf_psc_exp",
     # names of the simulated neuronal populations
-    "populations": ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I",'TH'],
+    "populations": ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I",'TH','THI'],
     # number of neurons in the different populations (same order as
     # 'populations')
-    "full_num_neurons": np.array([20683, 5834, 21915, 5479, 4850, 1065, 14395, 2948]),
+    #We write 1203 as the full neuronal population, 902 of those are thalamocortical, 301 are inhibitory. According to van Albada
+    "full_num_neurons": np.array([20683, 5834, 21915, 5479, 4850, 1065, 14395, 2948,902,301]), 
     # mean rates of the different populations in the non-scaled version of the
     # microcircuit (in spikes/s; same order as in 'populations');
     # necessary for the scaling of the network.
@@ -45,19 +47,22 @@ net_dict = {
     #
     # Since these rates were only taken from one simulation, they alone are not sufficient for verification.
     # For that, rates should be compared to mean values over multiple runs with different RNG seeds.
-    "full_mean_rates": np.array([0.903, 2.965, 4.414, 5.876, 7.569, 8.633, 1.105, 7.829]),
+    "full_mean_rates": np.array([0.903, 2.965, 4.414, 5.876, 7.569, 8.633, 1.105, 7.829,1.0,1.0]),
     # connection probabilities (the first index corresponds to the targets
     # and the second to the sources)
+ 
     "conn_probs": np.array(
         [
-            [0.1009, 0.1689, 0.0437, 0.0818, 0.0323, 0.0, 0.0076, 0.0],
-            [0.1346, 0.1371, 0.0316, 0.0515, 0.0755, 0.0, 0.0042, 0.0],
-            [0.0077, 0.0059, 0.0497, 0.135, 0.0067, 0.0003, 0.0453, 0.0],
-            [0.0691, 0.0029, 0.0794, 0.1597, 0.0033, 0.0, 0.1057, 0.0],
-            [0.1004, 0.0622, 0.0505, 0.0057, 0.0831, 0.3726, 0.0204, 0.0],
-            [0.0548, 0.0269, 0.0257, 0.0022, 0.06, 0.3158, 0.0086, 0.0],
-            [0.0156, 0.0066, 0.0211, 0.0166, 0.0572, 0.0197, 0.0396, 0.2252],
-            [0.0364, 0.001, 0.0034, 0.0005, 0.0277, 0.008, 0.0658, 0.1443],
+            [0.1009, 0.1689, 0.0437, 0.0818, 0.0323, 0.0, 0.0076, 0.0, 0.0, 0.0],
+            [0.1346, 0.1371, 0.0316, 0.0515, 0.0755, 0.0, 0.0042, 0.0, 0.0, 0.0],
+            [0.0077, 0.0059, 0.0497, 0.135, 0.0067, 0.0003, 0.0453, 0.0, 0.0983, 0.0],
+            [0.0691, 0.0029, 0.0794, 0.1597, 0.0033, 0.0, 0.1057, 0.0, 0.0619, 0.0],
+            [0.1004, 0.0622, 0.0505, 0.0057, 0.0831, 0.3726, 0.0204, 0.0, 0.0, 0.0],
+            [0.0548, 0.0269, 0.0257, 0.0022, 0.06, 0.3158, 0.0086, 0.0, 0.0, 0.0],
+            [0.0156, 0.0066, 0.0211, 0.0166, 0.0572, 0.0197, 0.0396, 0.2252, 0.0512, 0.0],
+            [0.0364, 0.001,  0.0034, 0.0005, 0.0277, 0.008, 0.0658, 0.1443, 0.0196, 0.0],
+            [0.0,    0.0,    0.0 ,   0.0,    0.0,    0.0,   0.3,  0.0,   0.0, 0.7],
+            [0.0,    0.0,    0.0,    0.0,    0.0,    0.0,   0.3,  0.0,   0.0, 0.7],
         ]
     ),
     # mean amplitude of excitatory postsynaptic potential (in mV)
@@ -78,7 +83,7 @@ net_dict = {
     "poisson_input": True, #True,
     # indegree of external connections to the different populations (same order
     # as in 'populations')
-    "K_ext": np.array([1600, 1500, 2100, 1900, 2000, 1900, 2900, 2100]),
+    "K_ext": np.array([1600, 1500, 2100, 1900, 2000, 1900, 2900, 2100,827,657]),
     # rate of the Poisson generator (in spikes/s)
     "bg_rate":8.0, #8.0
     # delay from.0 the Poisson generator to the network (in ms)
@@ -93,9 +98,9 @@ net_dict = {
     # parameters of the neuron model
     "neuron_params": {
         # membrane potential average for the neurons (in mV)
-        "V0_mean": {"original": -58.0, "optimized": [-68.28, -63.16, -63.33, -63.45, -63.11, -61.66, -66.72, -61.43]},
+        "V0_mean": {"original": -58.0, "optimized": [-68.28, -63.16, -63.33, -63.45, -63.11, -61.66, -66.72, -61.43, -58.0, -58.0]},
         # standard deviation of the average membrane potential (in mV)
-        "V0_std": {"original": 10.0, "optimized": [5.36, 4.57, 4.74, 4.94, 4.94, 4.55, 5.46, 4.48]},
+        "V0_std": {"original": 10.0, "optimized": [5.36, 4.57, 4.74, 4.94, 4.94, 4.55, 5.46, 4.48,10.0,10.0]},
         # reset membrane potential of the neurons (in mV)
         "E_L": -65.0,
         # threshold potential of the neurons (in mV)
