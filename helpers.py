@@ -266,8 +266,8 @@ def firing_rates(path, name, begin, end):
         all_mean_rates.append(np.mean(rate_per_neuron))
         all_std_rates.append(np.std(rate_per_neuron))
 
-    np.savetxt(os.path.join(path, ("../bg_8/mean_rate.dat")),all_mean_rates)
-    np.savetxt(os.path.join(path, ("../bg_8/std_rate.dat")),all_std_rates)
+    np.savetxt(os.path.join(path, ("../bg_10.5/mean_rate.dat")),all_mean_rates)
+    np.savetxt(os.path.join(path, ("../bg_10.5/std_rate.dat")),all_std_rates)
     print("Mean rates: {} spikes/s".format(np.around(all_mean_rates, decimals=3)))
     print("Standard deviation of rates: {} spikes/s".format(np.around(all_std_rates, decimals=3)))
 

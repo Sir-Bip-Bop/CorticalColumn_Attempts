@@ -3,5 +3,7 @@ bg_8/data_pops/
 bg_8/spike_rates/
 bg_8/times/
 bg_10/data_pops/
+bg_10/spike_rates/
+bg_10/times/
 test.py
 __pycache__
