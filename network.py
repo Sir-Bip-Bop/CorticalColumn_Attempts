@@ -111,7 +111,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval):
+    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -134,18 +134,19 @@ class Network:
         """
         if nest.Rank() == 0:
             print("Interval to plot spikes: {} ms".format(raster_plot_interval))
-            helpers.plot_raster(
+            pop_activity = helpers.plot_raster(
                 self.data_path,
                 "spike_recorder",
                 raster_plot_interval[0],
                 raster_plot_interval[1],
                 self.net_dict["N_scaling"],
+                binned
             )
 
             print("Interval to compute firing rates: {} ms".format(firing_rates_interval))
             helpers.firing_rates(self.data_path, "spike_recorder", firing_rates_interval[0], firing_rates_interval[1])
             helpers.boxplot(self.data_path, self.net_dict["populations"])
-
+        return pop_activity
     def __derive_parameters(self):
         """
         Derives and adjusts parameters and stores them as class attributes.
