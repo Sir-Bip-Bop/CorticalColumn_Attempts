@@ -111,7 +111,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False):
+    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,10,15,20],std= [3,3,3,3,3,1,2,3]):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -140,7 +140,9 @@ class Network:
                 raster_plot_interval[0],
                 raster_plot_interval[1],
                 self.net_dict["N_scaling"],
-                binned
+                binned,
+                M,
+                std,
             )
 
             print("Interval to compute firing rates: {} ms".format(firing_rates_interval))

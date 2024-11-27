@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
 from scipy import signal
+import addons 
 
 if "DISPLAY" not in os.environ:
     import matplotlib
@@ -181,7 +182,7 @@ def adjust_weights_and_input_to_synapse_scaling(
     return PSC_matrix_new, PSC_ext_new, DC_amp_new
 
 
-def plot_raster(path, name, begin, end, N_scaling,binned,M= [20,20,20,20,20,10,15,20], std= [3,3,3,3,3,1,2,3]):
+def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
     """Creates a spike raster plot of the network activity.
 
     Parameters
@@ -225,7 +226,7 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M= [20,20,20,20,20,10,1
         for i, n in enumerate(sd_names):
             times = data[i]["time_ms"]
             neurons = np.abs(data[i]["sender"] - last_node_id) + 1
-            pop_activity, bins = np.histogram(times,bins=int((end-begin)/0.2))
+            pop_activity, bins = np.histogram(times,bins=int((end-begin)/int(addons.analysis_dict["convolve_bin_size"])))
             window = signal.windows.gaussian(M[i],std[i])
             filtered_signal[i] = signal.convolve(pop_activity,window,mode='same')
             norm = np.linalg.norm(filtered_signal[i])
@@ -243,14 +244,17 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M= [20,20,20,20,20,10,1
         ax2.legend()
         
         filtered_signal_complete = {}
-        sd_names, node_ids, data_analysis = __load_spike_times(path, name, 1000, 2500)
+        sd_names, node_ids, data_analysis = __load_spike_times(path, name, addons.analysis_dict["analysis_start"], addons.analysis_dict["analysis_end"])
 
         for i, n in enumerate(sd_names):
             times_a = data_analysis[i]["time_ms"]
-            pop_activity_a, bins = np.histogram(times_a,bins=int((2500-1000)/0.2))
+            pop_activity_a, bins = np.histogram(times_a,bins=int((addons.analysis_dict["analysis_start"]-addons.analysis_dict["analysis_end"])/int(addons.analysis_dict["convolve_bin_size"])))
 
             window = signal.windows.gaussian(M[i],std[i])
             filtered_signal_complete[i] = signal.convolve(pop_activity_a,window,mode='same')
+
+            np.savetxt(addons.analysis_dict["name"] + "pop_activities/pop_activity_"+str(i)+".dat",filtered_signal_complete[i])
+            
         
 
 

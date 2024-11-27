@@ -20,6 +20,7 @@ analysis_dict = {
     "name": "bg_16/", 
     "synchrony_start": 500,
     "synchrony_end": 3500,
+    "convolve_bin_size": 0.2,
     }
 
 def number_synapses(net_pops,number = 50):
@@ -240,7 +241,7 @@ def analyse_synchrony(bin_width=3,t_r = 2):
         super_lvr = np.append(super_lvr, np.mean(lvr))
         lvr_pdf[i] = lvr
         irregularity = np.append(irregularity,np.mean(single_irregularity))
-        irregularity_pdf[i] = irregularity
+        irregularity_pdf[i] = single_irregularity
         if count >= 1000:
             break
 
