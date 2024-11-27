@@ -4,10 +4,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import nest 
+import helpers
 from matplotlib.patches import Polygon
 from scipy.fft import fft
 from scipy.fft import fftfreq
+import matplotlib.pyplot as plt
+import scienceplots
+import random
+plt.style.use(['science'])
 
+
+analysis_dict = {
+    "analysis_start": 500,
+    "analysis_end": 2500,
+    "name": "bg_16/", 
+    "synchrony_start": 500,
+    "synchrony_end": 3500,
+    }
 
 def number_synapses(net_pops,number = 50):
     data_synapses = {}
@@ -138,3 +151,225 @@ def split_current(data,num_neurons):
 
 def get_time(data,num_neurons):
     return data[0]["time_ms"][0::num_neurons]
+
+
+def analyse_synchrony(bin_width=3,t_r = 2):
+    analysis_interval_start = analysis_dict["analysis_start"]
+    analysis_interval_end = analysis_dict["analysis_end"]
+    analysis_interval_start_s = analysis_dict["synchrony_start"]
+    analysis_interval_end_s = analysis_dict["synchrony_end"]
+    
+
+    analysis_length = analysis_interval_end - analysis_interval_start
+    analysis_length_s = analysis_interval_end_s - analysis_interval_start_s
+
+    if analysis_length_s - analysis_length < 0:
+        print('There is a problem. Synchrony measurement range must be larger than the other')
+        return 
+
+    sd_names_s, node_ids, data_s = helpers.__load_spike_times("data_og/","spike_recorder",analysis_interval_start_s, analysis_interval_end_s)
+    
+    data = {}
+
+    for i in data_s:
+        low = np.searchsorted(data_s[i]["time_ms"],v=analysis_interval_start,side="left")
+        high = np.searchsorted(data_s[i]["time_ms"],v=analysis_interval_end,side='right')
+        data[i] = data_s[i][low:high]
+
+
+    synchrony_pd = []
+    irregularity = []
+
+    super_lvr = []
+    irregularity_pdf = {}
+    lvr_pdf = {}
+
+    times_s = {}
+
+    for i, n in enumerate(sd_names_s):
+
+        #Computing synchrony
+        neurons = np.unique(data_s[i]["sender"])
+        random.shuffle(neurons)
+        chosen_ones = neurons[1:1000]
+        indices = []
+        for indx in chosen_ones:
+            indices = np.append(indices,np.where(data_s[i]["sender"]==indx))
+        indices = np.array(indices,dtype=int)
+        times_s[i] = data_s[i][indices]["time_ms"]
+        counts, bins = np.histogram(times_s[i], bins=int(analysis_length_s/bin_width))
+        synchrony_pd = np.append(synchrony_pd,np.var(counts)/np.mean(counts))
+
+        #Computing irregularity and LvR
+        single_irregularity = []
+        used_senders = []
+        single_lvr = 0
+        lvr = []
+    
+    for i,n in enumerate(sd_names_s):
+        single_irregularity = []
+        used_senders = []
+        single_lvr = 0
+        lvr = []
+        for senders in data[i]["sender"]:
+            individual_neurons = []
+            times = []
+            isi = []
+            count = 0
+            if senders not in used_senders:
+                used_senders = np.append(used_senders,senders)
+                individual_neurons = np.append(individual_neurons,np.where(data[i]["sender"]==senders))
+                for index in individual_neurons:
+                    times = np.append(times,data[i][int(index)]["time_ms"])
+
+                if len(times)>4:
+                    for j in range(len(times)-1):
+                        isi = np.append(isi,times[j+1]-times[j])
+                    for j in range(len(isi)-1):
+                        single_lvr = single_lvr +  (1 - 4*isi[j]*isi[j+1] / (isi[j]+isi[j+1])**2) * (1 + 4 * t_r / (isi[j] + isi[j+1]))
+
+                    neuron_rate = len(times) / analysis_length * 1000
+
+                    single_lvr = 3 / (len(isi)-1) * single_lvr
+                    lvr = np.append(lvr, single_lvr)
+                    mean =np.mean(isi)
+                    var = np.sqrt(np.var(isi))
+                    single_irregularity = np.append(single_irregularity,np.float128(var/mean))
+                    count = count + 1
+
+        super_lvr = np.append(super_lvr, np.mean(lvr))
+        lvr_pdf[i] = lvr
+        irregularity = np.append(irregularity,np.mean(single_irregularity))
+        irregularity_pdf[i] = irregularity
+        if count >= 1000:
+            break
+
+    super_lvr = super_lvr[~np.isnan(super_lvr)]
+    irregularity = irregularity[~np.isnan(irregularity)] 
+
+    return synchrony_pd, irregularity, irregularity_pdf, super_lvr, lvr_pdf, times_s
+
+
+def analyse_firing_rates():
+    analysis_interval_start = analysis_dict["analysis_start"]
+    analysis_interval_end = analysis_dict["analysis_end"]
+    analysis_length = analysis_interval_end - analysis_interval_start
+    
+    sd_names, node_ids, data = helpers.__load_spike_times("data_og/","spike_recorder",analysis_interval_start, analysis_interval_end)
+
+    spike_rates = {}
+    super_times = []
+
+    for i, n in enumerate(sd_names):
+        single_spike_rates = []
+        used_senders = []
+        for senders in data[i]["sender"]:
+            individual_neurons = []
+            times = []
+            isi = []
+            count = 0
+            if senders not in used_senders:
+                used_senders = np.append(used_senders,senders)
+                individual_neurons = np.append(individual_neurons,np.where(data[i]["sender"]==senders))
+                for index in individual_neurons:
+                    times = np.append(times,data[i][int(index)]["time_ms"])
+                if len(times)>2:
+                    neuron_rate = len(times) / analysis_length * 1000
+                    single_spike_rates = np.append(single_spike_rates,neuron_rate)
+                    count = count + 1
+        spike_rates[i] = single_spike_rates
+        if count >= 1000:
+            break
+    return spike_rates
+
+def plot_synchrony(synchrony_pd, irregularity, irregularity_pdf, lvr, lvr_pdf):
+    plt.figure(figsize=(18,18))
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    bar_colors = ['tab:red', 'tab:blue', 'tab:red', 'tab:orange']
+
+    plt.subplot(3, 2, 1)
+
+    plt.barh(pops, synchrony_pd, color = bar_labels)
+    plt.ylabel('Populations')
+    plt.title('Synchrony')
+    plt.xlabel('Synchrony')
+
+    plt.subplot(3, 2, 2)
+    plt.barh(pops, synchrony_pd, color = bar_labels)
+    plt.ylabel('Populations')
+    plt.title('Placeholder')
+    plt.xlabel('Synchrony')
+
+    plt.subplot(3,2,3)
+    plt.barh(pops, irregularity, color = bar_labels)
+    plt.ylabel('Populations')
+    plt.title('Irregularity')
+    plt.xlabel('Irregulatiry')
+
+    plt.subplot(3,2,4)
+    irregularity_total = []
+    for i in irregularity_pdf:
+        data, bins= np.histogram(irregularity_pdf[i],density=True,bins=50)
+        irregularity_total = np.append(irregularity_total,irregularity_pdf[i])
+        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+
+    data_t, bins_s = np.histogram(irregularity_total,density=True,bins=50)
+    plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
+    plt.grid()
+    plt.legend()
+    plt.ylabel('Normalised Counts')
+    plt.title('P (irregularity)')
+    plt.xlabel('CV ISI')
+
+    plt.subplot(3,2,5)
+    plt.barh(pops,lvr, color = bar_labels)
+    plt.ylabel('Populations')
+    plt.title('LvR')
+    plt.xlabel('LvR')
+
+    plt.subplot(3,2,6)
+    lvr_total = []
+    for i in lvr_pdf:
+        data, bins= np.histogram(lvr_pdf[i],density=True)
+        lvt_total = np.append(lvr_total,lvr_pdf[i])
+        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+
+    data_t, bins_s = np.histogram(lvr_total,density=True)
+    plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
+    plt.grid()
+    plt.legend()
+    plt.ylabel('Normalised Counts')
+    plt.title('P (LvR)')
+    plt.xlabel('LvR')
+    plt.show()
+
+def plot_firing_rates(spike_rates):
+    plt.figure(figsize=(12,7))
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    bar_colors = ['tab:red', 'tab:blue', 'tab:red', 'tab:orange']
+    plt.subplot(1,2,1)
+    for i in spike_rates:
+        plt.hist(spike_rates[i],color=bar_labels[i],alpha = 0.3 + i*0.1, label = pops[i])
+    plt.grid()
+    plt.legend()
+    plt.ylabel('Counts')
+    plt.title('Firing rate histogram')
+    plt.xlabel('Firing rate (spikes/s)')
+
+    plt.subplot(1,2,2)
+    spike_total = []
+    for i in spike_rates:
+        data, bins= np.histogram(spike_rates[i],density=True)
+        spike_total = np.append(spike_total,spike_rates[i])
+        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+
+    data_t, bins_s = np.histogram(spike_total,density=True)
+    plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
+    plt.grid()
+    plt.legend()
+    plt.ylabel('Normalised Counts')
+    plt.title('P (rate)')
+    plt.xlabel('Firing rate (spikes/s)')
+    plt.show()

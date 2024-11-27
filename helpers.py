@@ -217,10 +217,9 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M= [20,20,20,20,20,10,1
     
     if binned:
         stp = 1
-        fig = plt.figure(figsize=(15,22))
-        ax = fig.add_subplot(211,label='1')
-        ax2 = fig.add_subplot(211, label = "2", frame_on=False)
-        ax3 = fig.add_subplot(212,label = "3")
+        fig = plt.figure(figsize=(15,11))
+        ax = fig.add_subplot(111,label='1')
+        ax2 = fig.add_subplot(111, label = "2", frame_on=False)
        
     
         for i, n in enumerate(sd_names):
@@ -242,8 +241,6 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M= [20,20,20,20,20,10,1
         ax2.set_xticks([])
         ax2.set_yticks([])
         ax2.legend()
-        ax3.plot(window)
-        ax3.grid()
         
         filtered_signal_complete = {}
         sd_names, node_ids, data_analysis = __load_spike_times(path, name, 1000, 2500)
