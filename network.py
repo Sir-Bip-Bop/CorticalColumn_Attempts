@@ -320,10 +320,36 @@ class Network:
                 "record_to": "ascii",
                 "record_from": ["V_m"],
                 "label": os.path.join(self.data_path, "voltmeter"),
-                "start": 10500,
-                "stop": 20500,
+                "start": self.sim_dict["start"],
+                "stop": self.sim_dict["stop"],
             }
             self.voltmeters = nest.Create("voltmeter", n=self.num_pops, params=vm_dict)
+        if "synaptic_ex" in self.sim_dict["rec_dev"]:
+            if nest.Rank() == 0:
+                print("Creating ammeters.")
+            ex_dict = {
+                "interval": self.sim_dict["rec_V_int"],
+                "record_to": "ascii",
+                "record_from": ["I_syn_ex"],
+                "label": os.path.join(self.data_path, "ex_current"),
+                "start": self.sim_dict["start"],
+                "stop": self.sim_dict["stop"],
+            }
+            self.ex_ammeters = nest.Create("voltmeter",n=self.num_pops,params=ex_dict)
+
+        if "synaptic_in" in self.sim_dict["rec_dev"]:
+            if nest.Rank() == 0:
+                print("Creating ammeters.")
+            ex_dict = {
+                "interval": self.sim_dict["rec_V_int"],
+                "record_to": "ascii",
+                "record_from": ["I_syn_in"],
+                "label": os.path.join(self.data_path, "in_current"),
+                "start": self.sim_dict["start"],
+                "stop": self.sim_dict["stop"],
+            }
+            self.in_ammeters = nest.Create("voltmeter",n=self.num_pops,params=ex_dict)
+        
 
     def __create_poisson_bg_input(self):
         """Creates the Poisson generators for ongoing background input if
@@ -439,6 +465,10 @@ class Network:
                 nest.Connect(target_pop, self.spike_recorders[i])
             if "voltmeter" in self.sim_dict["rec_dev"]:
                 nest.Connect(self.voltmeters[i], target_pop)
+            if "synaptic_ex" in self.sim_dict["rec_dev"]:
+                nest.Connect(self.ex_ammeters[i],target_pop)
+            if "synaptic_in" in self.sim_dict["rec_dev"]:
+                nest.Connect(self.in_ammeters[i],target_pop)
 
     def __connect_poisson_bg_input(self):
         """Connects the Poisson generators to the microcircuit."""

@@ -6,13 +6,13 @@ sim_dict = {
     # presimulation time (in ms)
     "t_presim": 500.0,
     # simulation time (in ms)
-    "t_sim": 2500.0, #1000
+    "t_sim": 3500.0, #1000
     # resolution of the simulation (in ms)
     "sim_resolution": 0.1,
     # list of recording devices, default is 'spike_recorder'. A 'voltmeter' can
     # be added to record membrane voltages of the neurons. Nothing will be
     # recorded if an empty list is given.
-    "rec_dev": ["spike_recorder", "voltmeter"],#["spike_recorder","voltmeter"], 
+    "rec_dev": ["spike_recorder", "voltmeter", "synaptic_ex","synaptic_in"],#["spike_recorder","voltmeter"], 
     # path to save the output data
     "data_path": os.path.join(os.getcwd(), "data_og/"),
     # Seed for NEST
@@ -23,9 +23,11 @@ sim_dict = {
     # may not run correctly if there is < 4 virtual processes
     # (i.e., a thread in an MPI process)
     # If you have 4 or more MPI processes, then you can set this value to 1.
-    "local_num_threads": 4,
+    "local_num_threads": 24,
     # recording interval of the membrane potential (in ms)
     "rec_V_int": 1.0,
+    "start" : 500,
+    "stop": 3500,
     # if True, data will be overwritten,
     # if False, a NESTError is raised if the files already exist
     "overwrite_files": True,
