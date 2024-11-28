@@ -1,23 +1,20 @@
 import os
-
+import random
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+
 import numpy as np
 import pandas as pd
 import nest 
 import helpers
-from matplotlib.patches import Polygon
-from scipy.fft import fft
-from scipy.fft import fftfreq
+
 from scipy.fft import fft
 from scipy.fft import fftfreq
 from scipy import signal
-import matplotlib.pyplot as plt
 from scipy.signal import butter, lfilter
-from scipy.signal import freqz
 from scipy.optimize import curve_fit
+
 import scienceplots
-from scipy import signal
-import random
 plt.style.use(['science'])
 
 
