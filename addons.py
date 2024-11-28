@@ -8,7 +8,13 @@ import helpers
 from matplotlib.patches import Polygon
 from scipy.fft import fft
 from scipy.fft import fftfreq
+from scipy.fft import fft
+from scipy.fft import fftfreq
+from scipy import signal
 import matplotlib.pyplot as plt
+from scipy.signal import butter, lfilter
+from scipy.signal import freqz
+from scipy.optimize import curve_fit
 import scienceplots
 from scipy import signal
 import random
@@ -533,3 +539,137 @@ def plot_firing_rates(spike_rates):
     plt.title('P (rate)')
     plt.xlabel('Firing rate (spikes/s)')
     plt.show()
+
+
+def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 7000, lim_x = 200, low_log = 10, high_log =90,fit=False,fit_freq_start = 4.0, fit_freq_end = 14.0,test_p0 = [30,10,5],welsh_fit = 'alpha',signal_xmin=500,signal_xmax=700,save=True,name_='freq.dat'):
+
+    analysis_interval_start = analysis_dict["analysis_start"]
+    analysis_interval_end = analysis_dict["analysis_end"]
+    FFT_Results = {}
+    Welsh_Freqs = {}
+    Welsh_Powers = {}
+    if fit:
+        Fit_FFT = {}
+        Fit_Welsh = {}
+        mean_freq = []
+        mean_welsh = []
+        amplitude_freq = []
+        amplitude_welsh = []
+        sigma_freq = []
+        sigma_welsh = []
+        def gaus(x, a, x0, sigma):
+            return a*np.exp(-(x-x0)**2/(2*sigma**2))
+
+
+    for i in signal_data:
+        FFT_Results[i] = fft(signal_data[i][analysis_interval_start:analysis_interval_end]-np.mean(signal_data[i][analysis_interval_start:analysis_interval_end]))
+        Welsh_Freqs[i], Welsh_Powers[i]  = signal.welch(signal_data[i][analysis_interval_start:analysis_interval_end]-np.mean(signal_data[i][analysis_interval_start:analysis_interval_end]),fs=freq_sample_welsh)
+
+    #Calcular los valores de frequencia correspondientes
+    freq = fftfreq(len(signal_data[i][analysis_interval_start:analysis_interval_end]),d=freq_sample)
+    index_start = int(np.where(freq==fit_freq_start)[0][0])
+    index_end = int(np.where(freq==fit_freq_end)[0][0])
+
+
+    plt.figure(figsize=(15, 5))
+    colors = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    # Graficar la amplitud en función de la frecuencia
+
+    plt.subplot(1, 4, 1)
+    j= 0
+    for i in signal_data:
+        plt.plot(signal_data[i][analysis_interval_start:analysis_interval_end], c = colors[j], label = i)
+        j=j+1
+    plt.xlabel('Time (ms)')
+    plt.ylabel('Voltage')
+    plt.title('Signal')
+    plt.xlim(signal_xmin,signal_xmax)    
+    plt.grid(True)
+    plt.legend(loc= 'best')
+
+    plt.subplot(1, 4, 2)
+    j= 0
+
+    indx = int(len(signal_data[i][analysis_interval_start:analysis_interval_end])/2)
+    for i in FFT_Results:
+        if fit:
+            Fit_FFT[i], __ = curve_fit(gaus,freq[index_start:index_end],np.abs(FFT_Results[i][index_start:index_end]),p0 = test_p0)
+            mean_freq_alfa = np.append(mean_freq_alfa,Fit_FFT[i][1])
+            amplitude_freq_alfa = np.append(amplitude_freq_alfa,Fit_FFT[i][0])
+            sigma_freq_alfa = np.append(sigma_freq_alfa,Fit_FFT[i][2])
+
+            plt.plot(freq[index_start:index_end],gaus(freq[index_start:index_end],*Fit_FFT[i]),'--', c = colors[j])
+        plt.plot(freq[:indx], np.abs(FFT_Results[i])[:indx],c = colors[j], label = i)
+        j=j+1
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Amplitude')
+    plt.title('Voltage (minus the mean) FFT')
+    plt.grid(True)
+    plt.xlim(1,lim_x)
+    plt.ylim(0,lim_y)
+    plt.legend(loc= 'best')
+
+    plt.subplot(1, 4, 3)
+    j= 0
+    indx = int(len(signal_data[i][analysis_interval_start:analysis_interval_end])/2)
+    for i in FFT_Results:
+        if fit:
+            plt.plot(freq[index_start:index_end],20 * np.log10(gaus(freq[index_start:index_end],*Fit_FFT[i])),'--', c = colors[j])
+        plt.plot(freq[:indx], 20 * np.log10(np.abs(FFT_Results[i])[:indx]),c = colors[j], label = i)
+        j=j+1
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Amplitude (dB)')
+    plt.title('Voltage (minus the mean) FFT')
+    plt.grid(True)
+    plt.xlim(1,lim_x)
+    plt.ylim(low_log,high_log)
+    plt.legend(loc= 'best')
+
+    plt.subplot(1, 4, 4)
+    j= 0
+
+    #plt.ylim([0.5e-3, 1])
+    for i in Welsh_Freqs:
+        if welsh_fit == 'alpha':
+            i_start = int(np.where((Welsh_Freqs[i] < 4) & (Welsh_Freqs[i] > 0.0))[0][0])
+            i_end = int(np.where((Welsh_Freqs[i]<22.0) & (Welsh_Freqs[i] >18.0))[0][0])
+
+        if fit:
+            Fit_Welsh[i], __ = curve_fit(gaus,Welsh_Freqs[i][i_start:i_end],Welsh_Powers[i][i_start:i_end],p0 = [0.01,10,5])
+            mean_welsh_alfa = np.append(mean_welsh_alfa,Fit_Welsh[i][1])
+            amplitude_welsh_alfa = np.append(amplitude_welsh_alfa,Fit_Welsh[i][0])
+            sigma_welsh_alfa = np.append(sigma_welsh_alfa,Fit_Welsh[i][2])
+            plt.plot(Welsh_Freqs[i][i_start:i_end],gaus(Welsh_Freqs[i][i_start:i_end],*Fit_Welsh[i]),'--', c = colors[j])
+        plt.plot(Welsh_Freqs[i], Welsh_Powers[i],c = colors[j], label = i)
+        j=j+1
+    plt.xlabel('Frequency [Hz]')
+    plt.ylabel(r'PSD $[V^2/Hz]$')
+    plt.title('Voltage (minus the mean) Welsh')
+    plt.grid(True)
+    plt.legend(loc= 'best')
+    plt.tight_layout()
+    plt.xlim(1,lim_x)
+    plt.yscale('log')
+    plt.show()
+
+    if save:
+        mean_final = np.mean( np.array([mean_freq,mean_welsh]),axis= 0)
+        amplitude_final = np.mean( np.array([amplitude_freq,amplitude_welsh]),axis= 0)
+        sigma_final = np.mean( np.array([sigma_freq,sigma_welsh]),axis= 0)
+        pops = [0,1,2,3,4,5,6,7]
+        np.savetxt(analysis_dict["name"] + name_, np.c_[pops,mean_final, amplitude_final, sigma_final], fmt = '%.2f', header = 'Pops mean_freq amplitude sigma')
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
+    return butter(order, [lowcut, highcut], fs=fs, btype='band')
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, data)
+    return y
+
+def filter_signal(data,fs,lowcut,highcut,order=3):
+    filtered_signal = {}
+    for i in data:
+        filtered_signal[str(i)] = butter_bandpass_filter(data[str(i)][analysis_dict["analysis_start"]:analysis_dict["analysis_end"]]-np.mean(data[str(i)][analysis_dict["analysis_start"]:analysis_dict["analysis_end"]]),lowcut,highcut,fs,order)
+
+    return filtered_signal
