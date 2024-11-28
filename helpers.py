@@ -226,7 +226,7 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
         for i, n in enumerate(sd_names):
             times = data[i]["time_ms"]
             neurons = np.abs(data[i]["sender"] - last_node_id) + 1
-            pop_activity, bins = np.histogram(times,bins=int((end-begin)/int(addons.analysis_dict["convolve_bin_size"])))
+            pop_activity, bins = np.histogram(times,bins=int((end-begin)/addons.analysis_dict["convolve_bin_size"]))
             window = signal.windows.gaussian(M[i],std[i])
             filtered_signal[i] = signal.convolve(pop_activity,window,mode='same')
             norm = np.linalg.norm(filtered_signal[i])
@@ -248,7 +248,7 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
 
         for i, n in enumerate(sd_names):
             times_a = data_analysis[i]["time_ms"]
-            pop_activity_a, bins = np.histogram(times_a,bins=int((addons.analysis_dict["analysis_start"]-addons.analysis_dict["analysis_end"])/int(addons.analysis_dict["convolve_bin_size"])))
+            pop_activity_a, bins = np.histogram(times_a,bins=int((addons.analysis_dict["analysis_end"]-addons.analysis_dict["analysis_start"])/addons.analysis_dict["convolve_bin_size"]))
 
             window = signal.windows.gaussian(M[i],std[i])
             filtered_signal_complete[i] = signal.convolve(pop_activity_a,window,mode='same')

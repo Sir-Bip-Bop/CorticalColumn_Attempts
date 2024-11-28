@@ -21,6 +21,7 @@ analysis_dict = {
     "synchrony_start": 500,
     "synchrony_end": 3500,
     "convolve_bin_size": 0.2,
+    "bin_size": 3,
     }
 
 def number_synapses(net_pops,number = 50):
@@ -282,6 +283,132 @@ def analyse_firing_rates():
         if count >= 1000:
             break
     return spike_rates
+
+def prepare_data(data_pop,ex_current_pop,in_current_pop):
+    sd_names, node_ids, data = helpers.__load_spike_times("data_og/","spike_recorder",analysis_dict["analysis_start"], analysis_dict["analysis_end"])
+
+    times = {}
+    data_voltages = { }
+    data_excitatory = {}
+    data_inhibitory = {}
+    bins = {}
+
+    names = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+
+
+
+    for i in range(len(data_pop)):
+        random.shuffle(data_pop[i])
+        random.shuffle(ex_current_pop[i])
+        random.shuffle(in_current_pop[i])
+        data_voltages[names[i]] =  np.mean(data_pop[i][0:1000],axis=0)
+        data_excitatory[names[i]] = np.mean(ex_current_pop[i][0:1000],axis=0)
+        data_inhibitory[names[i]] = np.mean(in_current_pop[i][0:1000],axis=0)
+        neurons = np.unique(data[i]["sender"]) 
+        random.shuffle(neurons)
+        chosen_ones = neurons[1:1000]
+        indices = []
+        for indx in chosen_ones:
+            indices = np.append(indices,np.where(data[i]["sender"]==indx))
+        indices = np.array(indices,dtype=int)
+        times_help = data[i][indices]["time_ms"] 
+        times[names[i]], bins[names[i]] = np.histogram(data[i][indices]["time_ms"], bins = int(analysis_dict["analysis_end"]-analysis_dict["analysis_start"]/analysis_dict["bin_size"]))
+
+    return data_voltages, data_excitatory, data_inhibitory, times, times_help
+
+
+def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity,times):
+    connection_p =np.array([[0.1009, 0.1689, 0.0437, 0.0818, 0.0323, 0.0, 0.0076, 0.0],
+            [0.1346, 0.1371, 0.0316, 0.0515, 0.0755, 0.0, 0.0042, 0.0],
+            [0.0077, 0.0059, 0.0497, 0.135, 0.0067, 0.0003, 0.0453, 0.0],
+            [0.0691, 0.0029, 0.0794, 0.1597, 0.0033, 0.0, 0.1057, 0.0],
+            [0.1004, 0.0622, 0.0505, 0.0057, 0.0831, 0.3726, 0.0204, 0.0],
+            [0.0548, 0.0269, 0.0257, 0.0022, 0.06, 0.3158, 0.0086, 0.0],
+            [0.0156, 0.0066, 0.0211, 0.0166, 0.0572, 0.0197, 0.0396, 0.2252],
+            [0.0364, 0.001, 0.0034, 0.0005, 0.0277, 0.008, 0.0658, 0.1443],
+        ]
+    )
+    names = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    dataframe = pd.DataFrame(data=data_voltages, columns= names)
+    matrix = dataframe.corr(method='pearson')
+
+    dataframe_ex = pd.DataFrame(data=data_excitatory, columns= names)
+    matrix_ex = dataframe_ex.corr(method='pearson')
+
+    dataframe_in = pd.DataFrame(data=data_inhibitory, columns= names)
+    matrix_in = dataframe_in.corr(method='pearson')
+    dataframe_activity = pd.DataFrame(data=pop_activity, columns= names)
+    matrix_activity = dataframe_activity.corr(method='pearson')
+
+    dataframe_times = pd.DataFrame(data=times, columns= names)
+    matrix_times = dataframe_times.corr(method='pearson')
+
+    variables = []
+    for i in matrix.columns:
+        variables.append(i)
+
+    variablest = []
+    for i in matrix_times.columns:
+        variablest.append(i)
+
+    variables_ex = []
+    for i in matrix_ex.columns:
+        variables_ex.append(i)
+
+    variables_activity = []
+    for i in matrix_activity.columns:
+        variables_activity.append(i)
+
+    variables_in = []
+    for i in matrix_in.columns:
+        variables_in.append(i)
+
+    plt.figure(figsize=(25,10))
+
+    # Adding labels to the matrix
+    plt.subplot(2, 3, 1)
+    plt.imshow(matrix, cmap='Blues')
+    plt.colorbar()
+    plt.title('Mean Voltage Correlation')
+    plt.xticks(range(len(matrix)), variables, rotation=45, ha='right')
+    plt.yticks(range(len(matrix)), variables)
+
+    plt.subplot(2, 3, 2)    
+    plt.imshow(matrix_ex, cmap='Blues')
+    plt.colorbar()
+    plt.title('Excitatory Current Correlation')
+    plt.xticks(range(len(matrix_ex)), variables_ex, rotation=45, ha='right')
+    plt.yticks(range(len(matrix_ex)), variables_ex)
+
+    plt.subplot(2, 3, 3)
+    plt.imshow(matrix_in, cmap='Blues')
+    plt.colorbar()
+    plt.title('Inhibitory Current Correlation')
+    plt.xticks(range(len(matrix_in)), variables_in, rotation=45, ha='right')
+    plt.yticks(range(len(matrix_in)), variables_in)
+
+    plt.subplot(2, 3, 4)
+    plt.imshow(matrix_activity, cmap='Blues')
+    plt.colorbar()
+    plt.title('Pop Activity Correlation')
+    plt.xticks(range(len(matrix_activity)), variables_activity, rotation=45, ha='right')
+    plt.yticks(range(len(matrix_activity)), variables_activity)    
+    
+    plt.subplot(2, 3, 5)
+    plt.imshow(matrix_times, cmap='Blues')
+    plt.colorbar()
+    plt.title('Spike Trains Correlation')
+    plt.xticks(range(len(matrix_times)), variablest, rotation=45, ha='right')
+    plt.yticks(range(len(matrix_times)), variablest)
+
+    plt.subplot(2, 3, 6)
+    plt.imshow(connection_p, cmap = 'Greens')
+    plt.xticks(ticks=[0,1,2,3,4,5,6,7],labels=["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"])
+    plt.yticks(ticks=[0,1,2,3,4,5,6,7],labels=["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"])
+    plt.title('Connection probabilities')
+    plt.colorbar()
+    plt.tight_layout()
+    plt.show()
 
 def plot_synchrony(synchrony_pd, irregularity, irregularity_pdf, lvr, lvr_pdf):
     plt.figure(figsize=(18,18))
