@@ -111,7 +111,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval):
+    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,10,15,20],std= [3,3,3,3,3,1,2,3]):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -134,18 +134,21 @@ class Network:
         """
         if nest.Rank() == 0:
             print("Interval to plot spikes: {} ms".format(raster_plot_interval))
-            helpers.plot_raster(
+            pop_activity = helpers.plot_raster(
                 self.data_path,
                 "spike_recorder",
                 raster_plot_interval[0],
                 raster_plot_interval[1],
                 self.net_dict["N_scaling"],
+                binned,
+                M,
+                std,
             )
 
             print("Interval to compute firing rates: {} ms".format(firing_rates_interval))
             helpers.firing_rates(self.data_path, "spike_recorder", firing_rates_interval[0], firing_rates_interval[1])
             helpers.boxplot(self.data_path, self.net_dict["populations"])
-
+        return pop_activity
     def __derive_parameters(self):
         """
         Derives and adjusts parameters and stores them as class attributes.
@@ -319,10 +322,36 @@ class Network:
                 "record_to": "ascii",
                 "record_from": ["V_m"],
                 "label": os.path.join(self.data_path, "voltmeter"),
-                "start": 10500,
-                "stop": 20500,
+                "start": self.sim_dict["start"],
+                "stop": self.sim_dict["stop"],
             }
             self.voltmeters = nest.Create("voltmeter", n=self.num_pops, params=vm_dict)
+        if "synaptic_ex" in self.sim_dict["rec_dev"]:
+            if nest.Rank() == 0:
+                print("Creating ammeters.")
+            ex_dict = {
+                "interval": self.sim_dict["rec_V_int"],
+                "record_to": "ascii",
+                "record_from": ["I_syn_ex"],
+                "label": os.path.join(self.data_path, "ex_current"),
+                "start": self.sim_dict["start"],
+                "stop": self.sim_dict["stop"],
+            }
+            self.ex_ammeters = nest.Create("voltmeter",n=self.num_pops,params=ex_dict)
+
+        if "synaptic_in" in self.sim_dict["rec_dev"]:
+            if nest.Rank() == 0:
+                print("Creating ammeters.")
+            ex_dict = {
+                "interval": self.sim_dict["rec_V_int"],
+                "record_to": "ascii",
+                "record_from": ["I_syn_in"],
+                "label": os.path.join(self.data_path, "in_current"),
+                "start": self.sim_dict["start"],
+                "stop": self.sim_dict["stop"],
+            }
+            self.in_ammeters = nest.Create("voltmeter",n=self.num_pops,params=ex_dict)
+        
 
     def __create_poisson_bg_input(self):
         """Creates the Poisson generators for ongoing background input if
@@ -438,6 +467,10 @@ class Network:
                 nest.Connect(target_pop, self.spike_recorders[i])
             if "voltmeter" in self.sim_dict["rec_dev"]:
                 nest.Connect(self.voltmeters[i], target_pop)
+            if "synaptic_ex" in self.sim_dict["rec_dev"]:
+                nest.Connect(self.ex_ammeters[i],target_pop)
+            if "synaptic_in" in self.sim_dict["rec_dev"]:
+                nest.Connect(self.in_ammeters[i],target_pop)
 
     def __connect_poisson_bg_input(self):
         """Connects the Poisson generators to the microcircuit."""

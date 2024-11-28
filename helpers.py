@@ -3,6 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
+from scipy import signal
+import addons 
 
 if "DISPLAY" not in os.environ:
     import matplotlib
@@ -180,7 +182,7 @@ def adjust_weights_and_input_to_synapse_scaling(
     return PSC_matrix_new, PSC_ext_new, DC_amp_new
 
 
-def plot_raster(path, name, begin, end, N_scaling):
+def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
     """Creates a spike raster plot of the network activity.
 
     Parameters
@@ -210,22 +212,71 @@ def plot_raster(path, name, begin, end, N_scaling):
     mod_node_ids = np.abs(node_ids - last_node_id) + 1
 
     label_pos = [(mod_node_ids[i, 0] + mod_node_ids[i + 1, 1]) / 2.0 for i in np.arange(0, 8, 2)]
+    filtered_signal = {}
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    bar_labels = ['coral', 'yellow', 'lawngreen', 'lime', 'aqua', 'cyan', 'orange', 'royalblue']
+    
+    if binned:
+        stp = 1
+        fig = plt.figure(figsize=(15,11))
+        ax = fig.add_subplot(111,label='1')
+        ax2 = fig.add_subplot(111, label = "2", frame_on=False)
+       
+    
+        for i, n in enumerate(sd_names):
+            times = data[i]["time_ms"]
+            neurons = np.abs(data[i]["sender"] - last_node_id) + 1
+            pop_activity, bins = np.histogram(times,bins=int((end-begin)/addons.analysis_dict["convolve_bin_size"]))
+            window = signal.windows.gaussian(M[i],std[i])
+            filtered_signal[i] = signal.convolve(pop_activity,window,mode='same')
+            norm = np.linalg.norm(filtered_signal[i])
+            high = neurons[-1]
+            low = neurons[0]
+            filtered_signal_plot = filtered_signal[i] / norm * 5 * np.abs(high - low) + high
 
-    stp = 1
-    if N_scaling > 0.1:
-        stp = int(10.0 * N_scaling)
-        print("  Only spikes of neurons in steps of {} are shown.".format(stp))
+            ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i])
+            ax2.plot(filtered_signal_plot, alpha = 0.7, linewidth= 2, color=bar_labels[i], label = pops[i])
 
-    plt.figure(figsize=(8, 6))
-    for i, n in enumerate(sd_names):
-        times = data[i]["time_ms"]
-        neurons = np.abs(data[i]["sender"] - last_node_id) + 1
-        plt.plot(times[::stp], neurons[::stp], ".", color=color_list[i])
-    plt.xlabel("time [ms]", fontsize=fs)
-    plt.xticks(fontsize=fs)
-    plt.yticks(label_pos, ylabels, fontsize=fs)
-    plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
+        ax.set_xlabel("time [ms]", fontsize=fs)
+        ax.set_yticks(label_pos, ylabels, fontsize=fs)
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+        ax2.legend()
+        
+        filtered_signal_complete = {}
+        sd_names, node_ids, data_analysis = __load_spike_times(path, name, addons.analysis_dict["analysis_start"], addons.analysis_dict["analysis_end"])
 
+        for i, n in enumerate(sd_names):
+            times_a = data_analysis[i]["time_ms"]
+            pop_activity_a, bins = np.histogram(times_a,bins=int((addons.analysis_dict["analysis_end"]-addons.analysis_dict["analysis_start"])/addons.analysis_dict["convolve_bin_size"]))
+
+            window = signal.windows.gaussian(M[i],std[i])
+            filtered_signal_complete[i] = signal.convolve(pop_activity_a,window,mode='same')
+
+            np.savetxt(addons.analysis_dict["name"] + "pop_activities/pop_activity_"+str(i)+".dat",filtered_signal_complete[i])
+            
+        
+
+
+        return filtered_signal_complete
+    else:
+        stp = 1
+        if N_scaling > 0.1:
+            stp = int(10.0 * N_scaling)
+            print("  Only spikes of neurons in steps of {} are shown.".format(stp))
+
+        plt.figure(figsize=(8, 6))
+        for i, n in enumerate(sd_names):
+            times = data[i]["time_ms"]
+            neurons = np.abs(data[i]["sender"] - last_node_id) + 1
+            plt.plot(times[::stp], neurons[::stp], ".", color=color_list[i])
+        plt.xlabel("time [ms]", fontsize=fs)
+        plt.xticks(fontsize=fs)
+        plt.yticks(label_pos, ylabels, fontsize=fs)
+        plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
+
+        return 0
+   
 
 def firing_rates(path, name, begin, end):
     """Computes mean and standard deviation of firing rates per population.
@@ -266,8 +317,8 @@ def firing_rates(path, name, begin, end):
         all_mean_rates.append(np.mean(rate_per_neuron))
         all_std_rates.append(np.std(rate_per_neuron))
 
-    np.savetxt(os.path.join(path, ("../bg_10.5/mean_rate.dat")),all_mean_rates)
-    np.savetxt(os.path.join(path, ("../bg_10.5/std_rate.dat")),all_std_rates)
+    np.savetxt(os.path.join(path, ("../bg_16/mean_rate.dat")),all_mean_rates)
+    np.savetxt(os.path.join(path, ("../bg_16/std_rate.dat")),all_std_rates)
     print("Mean rates: {} spikes/s".format(np.around(all_mean_rates, decimals=3)))
     print("Standard deviation of rates: {} spikes/s".format(np.around(all_std_rates, decimals=3)))
 
