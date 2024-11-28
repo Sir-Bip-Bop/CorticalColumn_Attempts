@@ -10,6 +10,7 @@ from scipy.fft import fft
 from scipy.fft import fftfreq
 import matplotlib.pyplot as plt
 import scienceplots
+from scipy import signal
 import random
 plt.style.use(['science'])
 
@@ -317,7 +318,7 @@ def prepare_data(data_pop,ex_current_pop,in_current_pop):
     return data_voltages, data_excitatory, data_inhibitory, times, times_help
 
 
-def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity,times):
+def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity,times,save_data=True):
     connection_p =np.array([[0.1009, 0.1689, 0.0437, 0.0818, 0.0323, 0.0, 0.0076, 0.0],
             [0.1346, 0.1371, 0.0316, 0.0515, 0.0755, 0.0, 0.0042, 0.0],
             [0.0077, 0.0059, 0.0497, 0.135, 0.0067, 0.0003, 0.0453, 0.0],
@@ -409,6 +410,37 @@ def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity
     plt.colorbar()
     plt.tight_layout()
     plt.show()
+    
+    if save_data:
+        matrix.to_csv(analysis_dict["name"]+'voltage_correlation.dat', sep=' ')
+        matrix_times.to_csv(analysis_dict["name"] + 'spiketimes_correlation.dat', sep=' ')
+        matrix_ex.to_csv(analysis_dict["name"] + 'ex_current_correlation.dat', sep=' ')
+        matrix_in.to_csv(analysis_dict["name"] + 'in_currents_correlation.dat', sep=' ')
+        matrix_activity.to_csv(analysis_dict["name"] + 'activity_correlation.dat', sep=' ')
+
+def plot_cross_correlation(signal_1,signal_packet,signal_name,time_lag = 50, corr_start = 2000, corr_end = 2200):
+    fig = plt.figure(figsize=(20,11))
+    ax = fig.add_subplot(121,label='1')
+    ax2 = fig.add_subplot(122, label = "2")
+    ax.plot(signal_1[corr_start:corr_end], color = "blue", label = "Original -"+signal_name)
+    for i, n in enumerate(signal_packet):
+        if str(n) != signal_name:
+            corr = signal.correlate(signal_1[corr_start:corr_end],signal_packet[str(n)][corr_start-time_lag:corr_end+time_lag],mode='valid')
+            lags = signal.correlation_lags(len(signal_1[corr_start:corr_end]), len(signal_packet[str(n)][corr_start-time_lag:corr_end+time_lag]),mode='valid')
+            corr /= np.max(corr)
+            ax.plot(signal_packet[str(n)][corr_start:corr_end],label = str(n))
+            ax2.plot(lags, corr,label=str(n))
+
+    ax.set_xlabel("Time (ms)")
+    ax.set_ylabel("Voltage (mV)")
+    ax.legend()
+    ax.grid()
+    ax2.set_xlabel("Discretised time lag")
+    ax2.set_ylabel("Normalised correlation")
+    ax2.grid()
+
+
+
 
 def plot_synchrony(synchrony_pd, irregularity, irregularity_pdf, lvr, lvr_pdf):
     plt.figure(figsize=(18,18))
