@@ -23,10 +23,10 @@ plt.style.use(['science'])
 
 analysis_dict = {
     "analysis_start": 500,
-    "analysis_end": 2500,
-    "name": "bg_16/", 
+    "analysis_end": 5500,
+    "name": "bg_8_delay_2.5/", 
     "synchrony_start": 500,
-    "synchrony_end": 3500,
+    "synchrony_end": 60500,
     "convolve_bin_size": 0.2,
     "bin_size": 3,
     }
@@ -594,9 +594,9 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     for i in FFT_Results:
         if fit:
             Fit_FFT[i], __ = curve_fit(gaus,freq[index_start:index_end],np.abs(FFT_Results[i][index_start:index_end]),p0 = test_p0)
-            mean_freq_alfa = np.append(mean_freq_alfa,Fit_FFT[i][1])
-            amplitude_freq_alfa = np.append(amplitude_freq_alfa,Fit_FFT[i][0])
-            sigma_freq_alfa = np.append(sigma_freq_alfa,Fit_FFT[i][2])
+            mean_freq = np.append(mean_freq,Fit_FFT[i][1])
+            amplitude_freq = np.append(amplitude_freq,Fit_FFT[i][0])
+            sigma_freq = np.append(sigma_freq,Fit_FFT[i][2])
 
             plt.plot(freq[index_start:index_end],gaus(freq[index_start:index_end],*Fit_FFT[i]),'--', c = colors[j])
         plt.plot(freq[:indx], np.abs(FFT_Results[i])[:indx],c = colors[j], label = i)
@@ -633,12 +633,18 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
         if welsh_fit == 'alpha':
             i_start = int(np.where((Welsh_Freqs[i] < 4) & (Welsh_Freqs[i] > 0.0))[0][0])
             i_end = int(np.where((Welsh_Freqs[i]<22.0) & (Welsh_Freqs[i] >18.0))[0][0])
+            p0 = [0.01,10,5]
+
+        if welsh_fit == 'gamma':
+            i_start = int(np.where((Welsh_Freqs[i] <60 ) & (Welsh_Freqs[i] > 50.0))[0][0])
+            i_end = int(np.where((Welsh_Freqs[i]<120.0) & (Welsh_Freqs[i] >110.0))[0][0])
+            p0 = [0.01,80,5]
 
         if fit:
-            Fit_Welsh[i], __ = curve_fit(gaus,Welsh_Freqs[i][i_start:i_end],Welsh_Powers[i][i_start:i_end],p0 = [0.01,10,5])
-            mean_welsh_alfa = np.append(mean_welsh_alfa,Fit_Welsh[i][1])
-            amplitude_welsh_alfa = np.append(amplitude_welsh_alfa,Fit_Welsh[i][0])
-            sigma_welsh_alfa = np.append(sigma_welsh_alfa,Fit_Welsh[i][2])
+            Fit_Welsh[i], __ = curve_fit(gaus,Welsh_Freqs[i][i_start:i_end],Welsh_Powers[i][i_start:i_end],p0 = p0)
+            mean_welsh = np.append(mean_welsh,Fit_Welsh[i][1])
+            amplitude_welsh = np.append(amplitude_welsh,Fit_Welsh[i][0])
+            sigma_welsh = np.append(sigma_welsh,Fit_Welsh[i][2])
             plt.plot(Welsh_Freqs[i][i_start:i_end],gaus(Welsh_Freqs[i][i_start:i_end],*Fit_Welsh[i]),'--', c = colors[j])
         plt.plot(Welsh_Freqs[i], Welsh_Powers[i],c = colors[j], label = i)
         j=j+1

@@ -6,7 +6,7 @@ sim_dict = {
     # presimulation time (in ms)
     "t_presim": 500.0,
     # simulation time (in ms)
-    "t_sim": 3500.0, #1000
+    "t_sim": 5500.0, #1000
     # resolution of the simulation (in ms)
     "sim_resolution": 0.1,
     # list of recording devices, default is 'spike_recorder'. A 'voltmeter' can
@@ -27,7 +27,7 @@ sim_dict = {
     # recording interval of the membrane potential (in ms)
     "rec_V_int": 1.0,
     "start" : 500,
-    "stop": 3500,
+    "stop": 5500,
     # if True, data will be overwritten,
     # if False, a NESTError is raised if the files already exist
     "overwrite_files": True,
