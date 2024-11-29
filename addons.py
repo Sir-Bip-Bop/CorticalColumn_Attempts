@@ -15,6 +15,7 @@ from scipy.fft import fftfreq
 from scipy import signal
 from scipy.signal import butter, lfilter
 from scipy.optimize import curve_fit
+from scipy.signal import find_peaks
 
 import scienceplots
 plt.style.use(['science'])
@@ -155,7 +156,7 @@ def load_data(path, name,type="Voltage"):
     data = {}
     if type=="Voltage":
         dtype = {"names": ("sender","time_ms","V_m"), "formats": ("i4","f8","f8")}
-    if type=="Current":
+    elif type=="Current":
         dtype = {"names": ("sender","time_ms","I_syn"), "formats": ("i4","f8","f8")}
     else:
         print("type must be either Voltage or Current")
@@ -206,7 +207,7 @@ def get_time(data,num_neurons):
     return data[0]["time_ms"][0::num_neurons]
 
 
-def analyse_synchrony(bin_width=3,t_r = 2,dt=0.01):
+def analyse_synchrony(num_neurons,bin_width=3,t_r = 2,dt=0.01):
     analysis_interval_start = analysis_dict["analysis_start"]
     analysis_interval_end = analysis_dict["analysis_end"]
     analysis_interval_start_s = analysis_dict["synchrony_start"]
@@ -214,12 +215,18 @@ def analyse_synchrony(bin_width=3,t_r = 2,dt=0.01):
     
     analysis_length = analysis_interval_end - analysis_interval_start
     analysis_length_s = analysis_interval_end_s - analysis_interval_start_s
-
+    pop_activity = {}
     if analysis_length_s - analysis_length < 0:
         print('There is a problem. Synchrony measurement range must be larger than the other')
         return 
 
     sd_names_s, node_ids, data_s = helpers.__load_spike_times("data_og/","spike_recorder",analysis_interval_start_s, analysis_interval_end_s)
+    
+    helper = np.loadtxt(analysis_dict["name"]+"pop_activities/pop_activity_"+str(0)+".dat")
+    sum_array = np.zeros_like(helper)
+    for i in range(len(num_neurons)):
+        pop_activity[i] = np.loadtxt(analysis_dict["name"]+"pop_activities/pop_activity_"+str(i)+".dat")
+        sum_array = sum_array + pop_activity[i]
     
     data = {}
 
@@ -261,6 +268,13 @@ def analyse_synchrony(bin_width=3,t_r = 2,dt=0.01):
         used_senders = []
         single_lvr = 0
         lvr = []
+
+    mean_pop = sum_array / len(num_neurons)
+    sum = 0
+    for i, n in enumerate(pop_activity):
+        sum = sum + np.var(pop_activity[i])
+    chi = np.var(mean_pop) / ((1 / len(num_neurons)) * sum)
+
     
     for i,n in enumerate(sd_names_s):
         single_irregularity = []
@@ -303,7 +317,7 @@ def analyse_synchrony(bin_width=3,t_r = 2,dt=0.01):
     super_lvr = super_lvr[~np.isnan(super_lvr)]
     irregularity = irregularity[~np.isnan(irregularity)] 
 
-    return synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, super_lvr, lvr_pdf, times_s
+    return synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, super_lvr, lvr_pdf, times_s, chi
 
 
 def analyse_firing_rates():
@@ -495,11 +509,11 @@ def plot_cross_correlation(signal_1,signal_packet,signal_name,time_lag = 50, cor
 
 
 
-def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, lvr, lvr_pdf):
+def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, lvr, lvr_pdf,chi):
     plt.figure(figsize=(18,18))
     pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
     bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
-    bar_colors = ['tab:red', 'tab:blue', 'tab:red', 'tab:orange']
+    
 
     plt.subplot(3, 2, 1)
 
@@ -511,7 +525,7 @@ def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, 
     plt.subplot(3, 2, 2)
     plt.barh(pops, synchrony_chi, color = bar_labels)
     plt.ylabel('Populations')
-    plt.title('Synchrony Half Bin size')
+    plt.title('Synchrony Half Bin size (Chi value ='+str(round(chi,3))+')')
     plt.xlabel('Synchrony')
 
     plt.subplot(3,2,3)
@@ -641,9 +655,9 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     for i in FFT_Results:
         if fit:
             Fit_FFT[i], __ = curve_fit(gaus,freq[index_start:index_end],np.abs(FFT_Results[i][index_start:index_end]),p0 = test_p0)
-            mean_freq_alfa = np.append(mean_freq_alfa,Fit_FFT[i][1])
-            amplitude_freq_alfa = np.append(amplitude_freq_alfa,Fit_FFT[i][0])
-            sigma_freq_alfa = np.append(sigma_freq_alfa,Fit_FFT[i][2])
+            mean_freq = np.append(mean_freq,Fit_FFT[i][1])
+            amplitude_freq = np.append(amplitude_freq,Fit_FFT[i][0])
+            sigma_freq = np.append(sigma_freq,Fit_FFT[i][2])
 
             plt.plot(freq[index_start:index_end],gaus(freq[index_start:index_end],*Fit_FFT[i]),'--', c = colors[j])
         plt.plot(freq[:indx], np.abs(FFT_Results[i])[:indx],c = colors[j], label = i)
@@ -683,9 +697,9 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
 
         if fit:
             Fit_Welsh[i], __ = curve_fit(gaus,Welsh_Freqs[i][i_start:i_end],Welsh_Powers[i][i_start:i_end],p0 = [0.01,10,5])
-            mean_welsh_alfa = np.append(mean_welsh_alfa,Fit_Welsh[i][1])
-            amplitude_welsh_alfa = np.append(amplitude_welsh_alfa,Fit_Welsh[i][0])
-            sigma_welsh_alfa = np.append(sigma_welsh_alfa,Fit_Welsh[i][2])
+            mean_welsh = np.append(mean_welsh,Fit_Welsh[i][1])
+            amplitude_welsh = np.append(amplitude_welsh,Fit_Welsh[i][0])
+            sigma_welsh = np.append(sigma_welsh,Fit_Welsh[i][2])
             plt.plot(Welsh_Freqs[i][i_start:i_end],gaus(Welsh_Freqs[i][i_start:i_end],*Fit_Welsh[i]),'--', c = colors[j])
         plt.plot(Welsh_Freqs[i], Welsh_Powers[i],c = colors[j], label = i)
         j=j+1
@@ -720,3 +734,24 @@ def filter_signal(data,fs,lowcut,highcut,order=3):
         filtered_signal[str(i)] = butter_bandpass_filter(data[str(i)][analysis_dict["analysis_start"]:analysis_dict["analysis_end"]]-np.mean(data[str(i)][analysis_dict["analysis_start"]:analysis_dict["analysis_end"]]),lowcut,highcut,fs,order)
 
     return filtered_signal
+
+def plot_activity(pop_activity):
+    plt.figure(figsize=(15, 5))
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    times = np.linspace(analysis_dict["analysis_start"],analysis_dict["analysis_end"],int((analysis_dict["analysis_end"]-analysis_dict["analysis_start"])/analysis_dict["convolve_bin_size"]))
+    mean_activity = []
+    mean_maxima = []
+
+    for i, n in enumerate(pop_activity):
+        plt.plot(times,pop_activity[pops[i]],label=pops[i],color=bar_labels[i])
+        mean_activity = np.append(mean_activity,np.mean(pop_activity[pops[i]]))
+        peaks = find_peaks(pop_activity[pops[i]])
+        mean_maxima = np.append(mean_maxima,np.mean(pop_activity[pops[i]][peaks[0]]))
+
+    plt.xlabel('Time(ms)')
+    plt.ylabel('Activity')
+    plt.xlim(1000,1200)
+    plt.legend()
+    plt.grid()
+    return mean_activity, mean_maxima
