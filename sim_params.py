@@ -6,7 +6,7 @@ sim_dict = {
     # presimulation time (in ms)
     "t_presim": 500.0,
     # simulation time (in ms)
-    "t_sim": 5500.0, #1000
+    "t_sim": 5000.0, #1000
     # resolution of the simulation (in ms)
     "sim_resolution": 0.1,
     # list of recording devices, default is 'spike_recorder'. A 'voltmeter' can
@@ -23,11 +23,11 @@ sim_dict = {
     # may not run correctly if there is < 4 virtual processes
     # (i.e., a thread in an MPI process)
     # If you have 4 or more MPI processes, then you can set this value to 1.
-    "local_num_threads": 24,
+    "local_num_threads": 10,
     # recording interval of the membrane potential (in ms)
     "rec_V_int": 1.0,
     "start" : 500,
-    "stop": 5500,
+    "stop": 5000,
     # if True, data will be overwritten,
     # if False, a NESTError is raised if the files already exist
     "overwrite_files": True,
