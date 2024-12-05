@@ -109,7 +109,8 @@ net_dict = {
         # time constant of postsynaptic currents (in ms)
         "tau_syn": 0.5,
         # refractory period of the neurons after a spike (in ms)
-        "t_ref": 20.0,
+        "t_ref": 2.5,
+        "t_std": 0.5,
     },
 }
 

@@ -24,7 +24,7 @@ plt.style.use(['science'])
 analysis_dict = {
     "analysis_start": 500,
     "analysis_end": 5500,
-    "name": "bg_8_delay_20.0/", 
+    "name": "bg_delay_2.5_std/", 
     "synchrony_start": 500,
     "synchrony_end": 5500,
     "convolve_bin_size": 0.2,
