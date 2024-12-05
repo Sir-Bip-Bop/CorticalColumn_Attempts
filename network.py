@@ -269,7 +269,8 @@ class Network:
                 E_L=self.net_dict["neuron_params"]["E_L"],
                 V_th=self.net_dict["neuron_params"]["V_th"],
                 V_reset=self.net_dict["neuron_params"]["V_reset"],
-                t_ref=nest.random.normal(self.net_dict["neuron_params"]["t_ref"],self.net_dict["neuron_params"]["t_std"],),
+                #t_ref=nest.random.normal(self.net_dict["neuron_params"]["t_ref"],self.net_dict["neuron_params"]["t_std"],),
+                t_ref = self.net_dict["neuron_params"]["t_ref"],
                 I_e=self.DC_amp[i],
             )
 
