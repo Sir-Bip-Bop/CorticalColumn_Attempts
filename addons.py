@@ -58,7 +58,10 @@ def number_synapses(net_pops,number = 50):
     population_limits = np.loadtxt("data_og/population_nodeids.dat")
     ex_populations = np.array(population_limits[::2],dtype=int)
     ranges = []
-
+    mean_ex = []
+    std_ex = []
+    mean_in = []
+    std_in= []
     for i in range(len(ex_populations)):
         ranges =  np.append(ranges,range(ex_populations[i][0],ex_populations[i][1]))
 
@@ -84,11 +87,21 @@ def number_synapses(net_pops,number = 50):
             counter = counter +1 
             if counter >= number:
                 break
+        help = np.array(list(data_frame.values()))
+        mean_ex = np.append(mean_ex,np.mean(help[:,0]))
+        mean_in = np.append(mean_in,np.mean(help[:,1]))
+        std_ex = np.append(std_ex,np.sqrt(np.var(help[:,0])))
+        std_in = np.append(std_in,np.sqrt(np.var(help[:,1])))
         dataframe = pd.DataFrame(data=data_frame, columns= column_list, index=["excitatory","inhibitory"])
         dataframe.to_csv("synapses_data/pop"+ str(j)+".txt")
         data_synapses[j] = dataframe
         j = j +1
     
+    np.savetxt("synapses_data/mean_ex.dat",mean_ex)
+    np.savetxt("synapses_data/std_ex.dat",std_ex)
+    np.savetxt("synapses_data/mean_in.dat",mean_in)
+    np.savetxt("synapses_data/std_in.dat",std_in)
+
     return data_synapses
 
 def gather_metadata(path, name):
