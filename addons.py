@@ -84,7 +84,10 @@ def number_synapses(net_pops,number = 50):
             counter = counter +1 
             if counter >= number:
                 break
+
+
         dataframe = pd.DataFrame(data=data_frame, columns= column_list, index=["excitatory","inhibitory"])
+        print("Mean:" +str(dataframe.values.mean(axis=1)) + 'Standard deviation:'+str(dataframe.values.std(axis=1))+'Maximum:'+str(dataframe.values.max(axis=1))+'Minimum:'+str(dataframe.values.min(axis=1)))
         dataframe.to_csv("synapses_data/pop"+ str(j)+".txt")
         data_synapses[j] = dataframe
         j = j +1

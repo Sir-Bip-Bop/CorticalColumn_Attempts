@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib.patches import Polygon
 from scipy import signal
 import addons 
+from sklearn.preprocessing import normalize
 
 if "DISPLAY" not in os.environ:
     import matplotlib
@@ -233,7 +234,6 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
             high = neurons[-1]
             low = neurons[0]
             filtered_signal_plot = filtered_signal[i] / norm * 5 * np.abs(high - low) + high
-
             ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i])
             ax2.plot(filtered_signal_plot, alpha = 0.7, linewidth= 2, color=bar_labels[i], label = pops[i])
 
@@ -252,7 +252,7 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
 
             window = signal.windows.gaussian(M[i],std[i])
             filtered_signal_complete[i] = signal.convolve(pop_activity_a,window,mode='same')
-
+            filtered_signal_complete[i] = (filtered_signal_complete[i] - np.min(filtered_signal_complete[i])) / (np.max(filtered_signal_complete[i])-np.min(filtered_signal_complete[i]))
             np.savetxt(addons.analysis_dict["name"] + "pop_activities/pop_activity_"+str(i)+".dat",filtered_signal_complete[i])
             
         
