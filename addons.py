@@ -1,23 +1,23 @@
 import os
-
+import random
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+
+import scipy as sp 
 import numpy as np
 import pandas as pd
 import nest 
 import helpers
-from matplotlib.patches import Polygon
-from scipy.fft import fft
-from scipy.fft import fftfreq
+
+from scipy.sparse import dok_matrix 
 from scipy.fft import fft
 from scipy.fft import fftfreq
 from scipy import signal
-import matplotlib.pyplot as plt
 from scipy.signal import butter, lfilter
-from scipy.signal import freqz
 from scipy.optimize import curve_fit
+from scipy.signal import find_peaks
+
 import scienceplots
-from scipy import signal
-import random
 plt.style.use(['science'])
 
 
@@ -32,13 +32,36 @@ analysis_dict = {
     }
 
 def number_synapses(net_pops,number = 50):
+    '''Computes de number of synapses.
+
+    For a number of target cells, it calculates the number of synapses that are targetting those.
+    The number is divided in excitatory and inhibitory synapses.
+
+    Parameters
+    ----------
+    net_pops (nest network NodeCollection)
+        a NodeCollection containing the information of all populations
+    number (int)
+        the number of neurons to measure the synapses for each population
+
+    Returns
+    -------
+        data_synapses
+            a dictionary containing the dataframes with the information of the number of neurons targetting each cell.
+            each index of the dictionary is a population' dataframe.
+            the dataframe contains number columns, and two rows, one for incoming excitatory synapses, and one for incoming inhibitory synapses
+    
+    '''
     data_synapses = {}
     j = 0
 
     population_limits = np.loadtxt("data_og/population_nodeids.dat")
     ex_populations = np.array(population_limits[::2],dtype=int)
     ranges = []
-
+    mean_ex = []
+    std_ex = []
+    mean_in = []
+    std_in= []
     for i in range(len(ex_populations)):
         ranges =  np.append(ranges,range(ex_populations[i][0],ex_populations[i][1]))
 
@@ -56,7 +79,7 @@ def number_synapses(net_pops,number = 50):
             ex_counts = 0
             in_counts = 0
             for i in range(len(conn_vals["source"])):
-                if conn_vals["source"][i] in ranges:
+                if conn_vals["source"][i] in ranges: # I think this counting process could be optimised, but that is currently on standby
                     ex_counts = ex_counts +1
                 else:
                     in_counts = in_counts + 1
@@ -64,11 +87,22 @@ def number_synapses(net_pops,number = 50):
             counter = counter +1 
             if counter >= number:
                 break
+        help = np.array(list(data_frame.values()))
+        mean_ex = np.append(mean_ex,np.mean(help[:,0]))
+        mean_in = np.append(mean_in,np.mean(help[:,1]))
+        std_ex = np.append(std_ex,np.sqrt(np.var(help[:,0])))
+        std_in = np.append(std_in,np.sqrt(np.var(help[:,1])))
         dataframe = pd.DataFrame(data=data_frame, columns= column_list, index=["excitatory","inhibitory"])
+        print("Mean:" +str(dataframe.values.mean(axis=1)) + 'Standard deviation:'+str(dataframe.values.std(axis=1))+'Maximum:'+str(dataframe.values.max(axis=1))+'Minimum:'+str(dataframe.values.min(axis=1)))
         dataframe.to_csv("synapses_data/pop"+ str(j)+".txt")
         data_synapses[j] = dataframe
         j = j +1
     
+    np.savetxt("synapses_data/mean_ex.dat",mean_ex)
+    np.savetxt("synapses_data/std_ex.dat",std_ex)
+    np.savetxt("synapses_data/mean_in.dat",mean_in)
+    np.savetxt("synapses_data/std_in.dat",std_in)
+
     return data_synapses
 
 def gather_metadata(path, name):
@@ -113,10 +147,34 @@ def gather_metadata(path, name):
     node_ids = np.array(node_ids, dtype="i4")
     return sd_files, sd_names, node_ids
 
-def load_voltage(path, name):
+def load_data(path, name,type="Voltage"):
+    """ Reads all the voltage data recorded during the simulation.
+
+    Parameters
+    ----------
+    path (string)
+        the location of the folder which contains all of the recorded data
+    name (string)
+        the specific naming convention for all of the datafiles, usually selected as a simulation parameter
+    type (string, either 'Voltage', 'Current')
+        the type of data to be read
+
+    Returns
+    -------
+    None
+        Only if type is not either of the two options
+    data (dict)
+        A dictionary containign the read data, each index corresponds to a single population
+    """
     sd_files, sd_names, node_ids = gather_metadata(path,name)
     data = {}
-    dtype = {"names": ("sender","time_ms","V_m"), "formats": ("i4","f8","f8")}
+    if type=="Voltage":
+        dtype = {"names": ("sender","time_ms","V_m"), "formats": ("i4","f8","f8")}
+    elif type=="Current":
+        dtype = {"names": ("sender","time_ms","I_syn"), "formats": ("i4","f8","f8")}
+    else:
+        print("type must be either Voltage or Current")
+        return 
 
     for i,name in enumerate(sd_names):
         data_i_raw = np.array([[]], dtype=dtype)
@@ -130,53 +188,59 @@ def load_voltage(path, name):
 
     return data
 
-def load_current(path,name):
-    sd_files, sd_names, node_ids = gather_metadata(path,name)
-    data = {}
-    dtype = {"names": ("sender","time_ms","I_syn"), "formats": ("i4","f8","f8")}
+def split_data(data,num_neurons,type="Voltage"):
+    """ Reads all the voltage data recorded during the simulation.
 
-    for i,name in enumerate(sd_names):
-        data_i_raw = np.array([[]],dtype=dtype)
-        for j,f in enumerate(sd_files):
-            if name in f:
-                ld = np.loadtxt(os.path.join(path,f),skiprows=3,dtype=dtype)
-                data_i_raw = np.append(data_i_raw,ld)
-        data_i_raw = np.sort(data_i_raw,order = "time_ms")
-        data[i] = data_i_raw
+    Parameters
+    ----------
+    data (array)
+        the data for a population
+    num_neurons (int)
+        the number of neurons in that population
+    type (string, either 'Voltage', 'Current')
+        the type of data to be read
 
-    return data 
-
-def split_voltage(data,num_neurons):
+    Returns
+    -------
+    None
+        Only if type is not either of the two options
+    data (dict)
+        A dictionary containign the read data, each index corresponds to a single population
+    """
     data_pop = np.zeros((num_neurons,len(data["time_ms"][0::num_neurons])))
     for i in range(num_neurons):
-        data_pop[i][:] = data["V_m"][i::num_neurons]
-    return data_pop
-
-def split_current(data,num_neurons):
-    data_pop = np.zeros((num_neurons,len(data["time_ms"][0::num_neurons])))
-    for i in range(num_neurons):
-        data_pop[i][:] = data["I_syn"][i::num_neurons]
+        if type=="Voltage":
+            data_pop[i][:] = data["V_m"][i::num_neurons]
+        if type=="Current":
+            data_pop[i][:] = data["I_syn"][i::num_neurons]
     return data_pop
 
 def get_time(data,num_neurons):
+    """I think this function can be removed, but i'll wait to check
+    """
     return data[0]["time_ms"][0::num_neurons]
 
 
-def analyse_synchrony(bin_width=3,t_r = 2):
+def analyse_synchrony(num_neurons,bin_width=3,t_r = 2,dt=0.01):
     analysis_interval_start = analysis_dict["analysis_start"]
     analysis_interval_end = analysis_dict["analysis_end"]
     analysis_interval_start_s = analysis_dict["synchrony_start"]
     analysis_interval_end_s = analysis_dict["synchrony_end"]
     
-
     analysis_length = analysis_interval_end - analysis_interval_start
     analysis_length_s = analysis_interval_end_s - analysis_interval_start_s
-
+    pop_activity = {}
     if analysis_length_s - analysis_length < 0:
         print('There is a problem. Synchrony measurement range must be larger than the other')
         return 
 
     sd_names_s, node_ids, data_s = helpers.__load_spike_times("data_og/","spike_recorder",analysis_interval_start_s, analysis_interval_end_s)
+    
+    helper = np.loadtxt(analysis_dict["name"]+"pop_activities/pop_activity_"+str(0)+".dat")
+    sum_array = np.zeros_like(helper)
+    for i in range(len(num_neurons)):
+        pop_activity[i] = np.loadtxt(analysis_dict["name"]+"pop_activities/pop_activity_"+str(i)+".dat")
+        sum_array = sum_array + pop_activity[i]
     
     data = {}
 
@@ -187,10 +251,11 @@ def analyse_synchrony(bin_width=3,t_r = 2):
 
 
     synchrony_pd = []
+    synchrony_chi = []
     irregularity = []
+    irregularity_pdf = {}
 
     super_lvr = []
-    irregularity_pdf = {}
     lvr_pdf = {}
 
     times_s = {}
@@ -207,6 +272,9 @@ def analyse_synchrony(bin_width=3,t_r = 2):
         indices = np.array(indices,dtype=int)
         times_s[i] = data_s[i][indices]["time_ms"]
         counts, bins = np.histogram(times_s[i], bins=int(analysis_length_s/bin_width))
+        counts2, bins = np.histogram(times_s[i], bins=int(analysis_length_s/bin_width/2))
+    
+        synchrony_chi = np.append(synchrony_chi,np.var(counts2)/np.mean(counts2)) 
         synchrony_pd = np.append(synchrony_pd,np.var(counts)/np.mean(counts))
 
         #Computing irregularity and LvR
@@ -214,6 +282,13 @@ def analyse_synchrony(bin_width=3,t_r = 2):
         used_senders = []
         single_lvr = 0
         lvr = []
+
+    mean_pop = sum_array / len(num_neurons)
+    sum = 0
+    for i, n in enumerate(pop_activity):
+        sum = sum + np.var(pop_activity[i])
+    chi = np.var(mean_pop) / ((1 / len(num_neurons)) * sum)
+
     
     for i,n in enumerate(sd_names_s):
         single_irregularity = []
@@ -256,7 +331,7 @@ def analyse_synchrony(bin_width=3,t_r = 2):
     super_lvr = super_lvr[~np.isnan(super_lvr)]
     irregularity = irregularity[~np.isnan(irregularity)] 
 
-    return synchrony_pd, irregularity, irregularity_pdf, super_lvr, lvr_pdf, times_s
+    return synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, super_lvr, lvr_pdf, times_s, chi
 
 
 def analyse_firing_rates():
@@ -448,11 +523,11 @@ def plot_cross_correlation(signal_1,signal_packet,signal_name,time_lag = 50, cor
 
 
 
-def plot_synchrony(synchrony_pd, irregularity, irregularity_pdf, lvr, lvr_pdf):
+def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, lvr, lvr_pdf,chi):
     plt.figure(figsize=(18,18))
     pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
     bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
-    bar_colors = ['tab:red', 'tab:blue', 'tab:red', 'tab:orange']
+    
 
     plt.subplot(3, 2, 1)
 
@@ -462,9 +537,9 @@ def plot_synchrony(synchrony_pd, irregularity, irregularity_pdf, lvr, lvr_pdf):
     plt.xlabel('Synchrony')
 
     plt.subplot(3, 2, 2)
-    plt.barh(pops, synchrony_pd, color = bar_labels)
+    plt.barh(pops, synchrony_chi, color = bar_labels)
     plt.ylabel('Populations')
-    plt.title('Placeholder')
+    plt.title('Synchrony Half Bin size (Chi value ='+str(round(chi,3))+')')
     plt.xlabel('Synchrony')
 
     plt.subplot(3,2,3)
@@ -679,3 +754,24 @@ def filter_signal(data,fs,lowcut,highcut,order=3):
         filtered_signal[str(i)] = butter_bandpass_filter(data[str(i)][analysis_dict["analysis_start"]:analysis_dict["analysis_end"]]-np.mean(data[str(i)][analysis_dict["analysis_start"]:analysis_dict["analysis_end"]]),lowcut,highcut,fs,order)
 
     return filtered_signal
+
+def plot_activity(pop_activity):
+    plt.figure(figsize=(15, 5))
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    times = np.linspace(analysis_dict["analysis_start"],analysis_dict["analysis_end"],int((analysis_dict["analysis_end"]-analysis_dict["analysis_start"])/analysis_dict["convolve_bin_size"]))
+    mean_activity = []
+    mean_maxima = []
+
+    for i, n in enumerate(pop_activity):
+        plt.plot(times,pop_activity[pops[i]],label=pops[i],color=bar_labels[i])
+        mean_activity = np.append(mean_activity,np.mean(pop_activity[pops[i]]))
+        peaks = find_peaks(pop_activity[pops[i]])
+        mean_maxima = np.append(mean_maxima,np.mean(pop_activity[pops[i]][peaks[0]]))
+
+    plt.xlabel('Time(ms)')
+    plt.ylabel('Activity')
+    plt.xlim(1000,1200)
+    plt.legend()
+    plt.grid()
+    return mean_activity, mean_maxima

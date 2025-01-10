@@ -6,6 +6,12 @@ data_og/
 */irregularities/
 */pop_activities/
 */lvrs/
+*/irregularities/
+*/pop_activities/
+*/lvrs/
+*/spike_rates/
+*/times/
+*/sample_voltages/
 test.py
 __pycache__
 output_1.png

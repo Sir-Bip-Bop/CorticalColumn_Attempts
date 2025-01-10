@@ -473,8 +473,11 @@ class Network:
         """Connects the recording devices to the microcircuit."""
         if nest.Rank == 0:
             print("Connecting recording devices.")
+        
+        conn_spec = {'rule': 'fixed_total_number','N':1000}
 
         for i, target_pop in enumerate(self.pops):
+            print(target_pop)
             if "spike_recorder" in self.sim_dict["rec_dev"]:
                 nest.Connect(target_pop, self.spike_recorders[i])
             if "voltmeter" in self.sim_dict["rec_dev"]:
@@ -482,7 +485,7 @@ class Network:
             if "synaptic_ex" in self.sim_dict["rec_dev"]:
                 nest.Connect(self.ex_ammeters[i],target_pop)
             if "synaptic_in" in self.sim_dict["rec_dev"]:
-                nest.Connect(self.in_ammeters[i],target_pop)
+                nest.Connect(self.in_ammeters[i],target_pop,)
 
     def __connect_poisson_bg_input(self):
         """Connects the Poisson generators to the microcircuit."""
