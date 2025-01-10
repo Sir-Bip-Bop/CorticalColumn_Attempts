@@ -390,12 +390,23 @@ class Network:
 
         self.thalamic_population = nest.Create("parrot_neuron", n=self.stim_dict["num_th_neurons"])
 
-        self.poisson_th = nest.Create("poisson_generator")
-        self.poisson_th.set(
-            rate=self.stim_dict["th_rate"],
-            start=self.stim_dict["th_start"],
-            stop=(self.stim_dict["th_start"] + self.stim_dict["th_duration"]),
-        )
+        if self.stim_dict["input_type"] == 'poisson':
+            self.poisson_th = nest.Create("poisson_generator")
+            self.poisson_th.set(
+                rate=self.stim_dict["th_rate"],
+                start=self.stim_dict["th_start"],
+                stop=(self.stim_dict["th_start"] + self.stim_dict["th_duration"]),
+            )
+        if self.stim_dict["input_type"] == "gaussian_pulse":
+            self.poisson_th = nest.Create("pulsepacket_generator")
+            self.poisson_th.set(
+                start = self.stim_dict["th_start"],
+                stop = (self.stim_dict["th_start"] + self.stim_dict["th_duration"]),
+                pulse_times = np.linspace(self.stim_dict["th_start"],self.stim_dict["th_start"]+self.stim_dict["th_duration"],num=self.stim_dict["pulse_number"]),
+                #pulse_times = [500,510,520],
+                activity = int(self.stim_dict["th_rate"]),
+                sdev = self.stim_dict["th_dev"],
+            )
 
     def __create_dc_stim_input(self):
         """Creates DC generators for external stimulation if specified
