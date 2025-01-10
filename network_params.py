@@ -80,7 +80,7 @@ net_dict = {
     # as in 'populations')
     "K_ext": np.array([1600, 1500, 2100, 1900, 2000, 1900, 2900, 2100]),
     # rate of the Poisson generator (in spikes/s)
-    "bg_rate":16.0, #8.0
+    "bg_rate":8.0, #8.0
     # delay from.0 the Poisson generator to the network (in ms)
     "delay_poisson": 1.5,
     # initial conditions for the membrane potential, options are:
@@ -110,6 +110,7 @@ net_dict = {
         "tau_syn": 0.5,
         # refractory period of the neurons after a spike (in ms)
         "t_ref": 2.0,
+        "t_std": 0.3,
     },
 }
 

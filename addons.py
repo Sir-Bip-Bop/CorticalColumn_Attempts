@@ -23,10 +23,10 @@ plt.style.use(['science'])
 
 analysis_dict = {
     "analysis_start": 500,
-    "analysis_end": 2500,
-    "name": "bg_16/", 
+    "analysis_end": 5000,
+    "name": "stimulus_pulse_4/", 
     "synchrony_start": 500,
-    "synchrony_end": 3500,
+    "synchrony_end": 5000,
     "convolve_bin_size": 0.2,
     "bin_size": 3,
     }
@@ -488,7 +488,7 @@ def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity
         matrix_in.to_csv(analysis_dict["name"] + 'in_currents_correlation.dat', sep=' ')
         matrix_activity.to_csv(analysis_dict["name"] + 'activity_correlation.dat', sep=' ')
 
-def plot_cross_correlation(signal_1,signal_packet,signal_name,time_lag = 50, corr_start = 2000, corr_end = 2200):
+def plot_cross_correlation(signal_1,signal_packet,signal_name,time_lag = 50, corr_start = 0, corr_end = 200):
     fig = plt.figure(figsize=(20,11))
     ax = fig.add_subplot(121,label='1')
     ax2 = fig.add_subplot(122, label = "2")
@@ -649,7 +649,7 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     plt.title('Signal')
     plt.xlim(signal_xmin,signal_xmax)    
     plt.grid(True)
-    plt.legend(loc= 'best')
+    #plt.legend(loc= 'best')
 
     plt.subplot(1, 4, 2)
     j= 0
@@ -697,9 +697,15 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
         if welsh_fit == 'alpha':
             i_start = int(np.where((Welsh_Freqs[i] < 4) & (Welsh_Freqs[i] > 0.0))[0][0])
             i_end = int(np.where((Welsh_Freqs[i]<22.0) & (Welsh_Freqs[i] >18.0))[0][0])
+            p0 = [0.01,10,5]
+
+        if welsh_fit == 'gamma':
+            i_start = int(np.where((Welsh_Freqs[i] <60 ) & (Welsh_Freqs[i] > 50.0))[0][0])
+            i_end = int(np.where((Welsh_Freqs[i]<120.0) & (Welsh_Freqs[i] >110.0))[0][0])
+            p0 = [0.01,80,5]
 
         if fit:
-            Fit_Welsh[i], __ = curve_fit(gaus,Welsh_Freqs[i][i_start:i_end],Welsh_Powers[i][i_start:i_end],p0 = [0.01,10,5])
+            Fit_Welsh[i], __ = curve_fit(gaus,Welsh_Freqs[i][i_start:i_end],Welsh_Powers[i][i_start:i_end],p0 = p0)
             mean_welsh = np.append(mean_welsh,Fit_Welsh[i][1])
             amplitude_welsh = np.append(amplitude_welsh,Fit_Welsh[i][0])
             sigma_welsh = np.append(sigma_welsh,Fit_Welsh[i][2])
@@ -708,9 +714,9 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
         j=j+1
     plt.xlabel('Frequency [Hz]')
     plt.ylabel(r'PSD $[V^2/Hz]$')
-    plt.title('Voltage (minus the mean) Welsh')
+    plt.title('Voltage (minus the mean) Welch')
     plt.grid(True)
-    plt.legend(loc= 'best')
+    #plt.legend(loc= 'best')
     plt.tight_layout()
     plt.xlim(1,lim_x)
     plt.yscale('log')

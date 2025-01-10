@@ -3,15 +3,21 @@ import numpy as np
 stim_dict = {
     # optional thalamic input
     # turn thalamic input on or off (True or False)
-    "thalamic_input": False,
+    "thalamic_input": True,
+
+    "input_type": 'gaussian_pulse', #poisson, gaussian_pulse
     # start of the thalamic input (in ms)
-    "th_start": 700.0,
+    "th_start": 500.0,
     # duration of the thalamic input (in ms)
-    "th_duration": 10.0,
+    "th_duration": 5000.0,
     # rate of the thalamic input (in spikes/s)
-    "th_rate": 120.0,
+    "th_rate": 4.0,
+
+    "th_dev": 60,
     # number of thalamic neurons
-    "num_th_neurons": 902,
+    "num_th_neurons": 300, #902
+
+    "pulse_number": 50,
     # connection probabilities of the thalamus to the different populations
     # (same order as in 'populations' in 'net_dict')
     "conn_probs_th": np.array([0.0, 0.0, 0.0983, 0.0619, 0.0, 0.0, 0.0512, 0.0196]),
