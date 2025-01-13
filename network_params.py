@@ -120,6 +120,7 @@ PSP_matrix_mean = get_exc_inh_matrix(
     net_dict["PSP_exc_mean"], net_dict["PSP_exc_mean"] * net_dict["g"], len(net_dict["populations"])
 )
 PSP_matrix_mean[0, 2] = 2.0 * net_dict["PSP_exc_mean"]
+PSP_matrix_mean[3,2] = 3.0 * net_dict["PSP_exc_mean"]
 
 updated_dict = {
     # matrix of mean PSPs

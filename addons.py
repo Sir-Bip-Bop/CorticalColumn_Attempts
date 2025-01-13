@@ -24,7 +24,7 @@ plt.style.use(['science'])
 analysis_dict = {
     "analysis_start": 500,
     "analysis_end": 5000,
-    "name": "stimulus_pulse_4/", 
+    "name": "connectivity_alter_pulse_stimulus/", 
     "synchrony_start": 500,
     "synchrony_end": 5000,
     "convolve_bin_size": 0.2,
