@@ -3,7 +3,7 @@ import numpy as np
 stim_dict = {
     # optional thalamic input
     # turn thalamic input on or off (True or False)
-    "thalamic_input": True,
+    "thalamic_input": False,
 
     "input_type": 'gaussian_pulse', #poisson, gaussian_pulse
     # start of the thalamic input (in ms)
