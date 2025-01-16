@@ -111,7 +111,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,10,15,20],std= [3,3,3,3,3,1,2,3]):
+    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,10,15,20,20,20],std= [3,3,3,3,3,1,2,3,3,3]):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -366,7 +366,8 @@ class Network:
             print("Creating Poisson generators for background input.")
 
         self.poisson_bg_input = nest.Create("poisson_generator", n=self.num_pops)
-        self.poisson_bg_input.rate = self.net_dict["bg_rate"] * self.ext_indegrees
+        for i, n in enumerate(self.poisson_bg_input):
+            self.poisson_bg_input[i].rate = self.net_dict["bg_rate"][i] * self.ext_indegrees[i]
 
     def __create_thalamic_stim_input(self):
         """Creates the thalamic neuronal population if specified in

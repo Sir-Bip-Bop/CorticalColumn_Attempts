@@ -24,7 +24,7 @@ plt.style.use(['science'])
 analysis_dict = {
     "analysis_start": 500,
     "analysis_end": 5000,
-    "name": "connectivity_alter_no_stimulus/", 
+    "name": "connectivity_thalamus_other_test/", 
     "synchrony_start": 500,
     "synchrony_end": 5000,
     "convolve_bin_size": 0.2,
@@ -375,7 +375,7 @@ def prepare_data(data_pop,ex_current_pop,in_current_pop):
     data_inhibitory = {}
     bins = {}
 
-    names = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    names = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I","THC","THI"]
 
 
 
@@ -400,17 +400,20 @@ def prepare_data(data_pop,ex_current_pop,in_current_pop):
 
 
 def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity,times,save_data=True):
-    connection_p =np.array([[0.1009, 0.1689, 0.0437, 0.0818, 0.0323, 0.0, 0.0076, 0.0],
-            [0.1346, 0.1371, 0.0316, 0.0515, 0.0755, 0.0, 0.0042, 0.0],
-            [0.0077, 0.0059, 0.0497, 0.135, 0.0067, 0.0003, 0.0453, 0.0],
-            [0.0691, 0.0029, 0.0794, 0.1597, 0.0033, 0.0, 0.1057, 0.0],
-            [0.1004, 0.0622, 0.0505, 0.0057, 0.0831, 0.3726, 0.0204, 0.0],
-            [0.0548, 0.0269, 0.0257, 0.0022, 0.06, 0.3158, 0.0086, 0.0],
-            [0.0156, 0.0066, 0.0211, 0.0166, 0.0572, 0.0197, 0.0396, 0.2252],
-            [0.0364, 0.001, 0.0034, 0.0005, 0.0277, 0.008, 0.0658, 0.1443],
-        ]
-    )
-    names = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
+    connection_p = np.array(
+        [
+            [0.1009, 0.1689, 0.0437, 0.0818, 0.0323, 0.0, 0.0076, 0.0, 0.0, 0.0],
+            [0.1346, 0.1371, 0.0316, 0.0515, 0.0755, 0.0, 0.0042, 0.0, 0.0, 0.0],
+            [0.0077, 0.0059, 0.0497, 0.135, 0.0067, 0.0003, 0.0453, 0.0, 0.0983, 0.0],
+            [0.0691, 0.0029, 0.0794, 0.1597, 0.0033, 0.0, 0.1057, 0.0, 0.0619, 0.0],
+            [0.1004, 0.0622, 0.0505, 0.0057, 0.0831, 0.3726, 0.0204, 0.0, 0.0, 0.0],
+            [0.0548, 0.0269, 0.0257, 0.0022, 0.06, 0.3158, 0.0086, 0.0, 0.0, 0.0],
+            [0.0156, 0.0066, 0.0211, 0.0166, 0.0572, 0.0197, 0.0396, 0.2252, 0.0512, 0.0],
+            [0.0364, 0.001,  0.0034, 0.0005, 0.0277, 0.008, 0.0658, 0.1443, 0.0196, 0.0],
+            [0.0,    0.0,    0.0 ,   0.0,    0.0,    0.0,   0.3,  0.0,   0.0, 0.7],
+            [0.0,    0.0,    0.0,    0.0,    0.0,    0.0,   0.3,  0.0,   0.0, 0.7],
+        ])
+    names = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I","THC","THI"]
     dataframe = pd.DataFrame(data=data_voltages, columns= names)
     matrix = dataframe.corr(method='pearson')
 
@@ -485,8 +488,8 @@ def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity
 
     plt.subplot(2, 3, 6)
     plt.imshow(connection_p, cmap = 'Greens')
-    plt.xticks(ticks=[0,1,2,3,4,5,6,7],labels=["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"])
-    plt.yticks(ticks=[0,1,2,3,4,5,6,7],labels=["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"])
+    plt.xticks(ticks=[0,1,2,3,4,5,6,7,8,9],labels=["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I","THC","THI"])
+    plt.yticks(ticks=[0,1,2,3,4,5,6,7,8,9],labels=["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I","THC","THI"])
     plt.title('Connection probabilities')
     plt.colorbar()
     plt.tight_layout()
@@ -525,8 +528,8 @@ def plot_cross_correlation(signal_1,signal_packet,signal_name,time_lag = 50, cor
 
 def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, lvr, lvr_pdf,chi):
     plt.figure(figsize=(18,18))
-    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
-    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I",'THC','THI']
+    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin','yellow','green']
     
 
     plt.subplot(3, 2, 1)
@@ -553,7 +556,7 @@ def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, 
     for i in irregularity_pdf:
         data, bins= np.histogram(irregularity_pdf[i],density=True,bins=50)
         irregularity_total = np.append(irregularity_total,irregularity_pdf[i])
-        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+        plt.plot(bins[:-1],data,alpha=0.1+i*0.1, label = pops[i], color = bar_labels[i])
 
     data_t, bins_s = np.histogram(irregularity_total,density=True,bins=50)
     plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
@@ -574,7 +577,7 @@ def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, 
     for i in lvr_pdf:
         data, bins= np.histogram(lvr_pdf[i],density=True)
         lvt_total = np.append(lvr_total,lvr_pdf[i])
-        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+        plt.plot(bins[:-1],data,alpha=0.1+i*0.1, label = pops[i], color = bar_labels[i])
 
     data_t, bins_s = np.histogram(lvr_total,density=True)
     plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
@@ -587,12 +590,12 @@ def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, 
 
 def plot_firing_rates(spike_rates):
     plt.figure(figsize=(12,7))
-    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
-    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I","THC","THI"]
+    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin','yellow','green']
     bar_colors = ['tab:red', 'tab:blue', 'tab:red', 'tab:orange']
     plt.subplot(1,2,1)
     for i in spike_rates:
-        plt.hist(spike_rates[i],color=bar_labels[i],alpha = 0.3 + i*0.1, label = pops[i])
+        plt.hist(spike_rates[i],color=bar_labels[i],alpha = 0.1 + i*0.1, label = pops[i])
     plt.grid()
     plt.legend()
     plt.ylabel('Counts')
@@ -604,7 +607,7 @@ def plot_firing_rates(spike_rates):
     for i in spike_rates:
         data, bins= np.histogram(spike_rates[i],density=True)
         spike_total = np.append(spike_total,spike_rates[i])
-        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+        plt.plot(bins[:-1],data,alpha=0.1+i*0.1, label = pops[i], color = bar_labels[i])
 
     data_t, bins_s = np.histogram(spike_total,density=True)
     plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
@@ -647,7 +650,7 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
 
 
     plt.figure(figsize=(15, 5))
-    colors = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    colors = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin','yellow','green']
     # Graficar la amplitud en función de la frecuencia
 
     plt.subplot(1, 4, 1)
@@ -757,8 +760,8 @@ def filter_signal(data,fs,lowcut,highcut,order=3):
 
 def plot_activity(pop_activity):
     plt.figure(figsize=(15, 5))
-    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
-    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
+    pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I","THC","THI"]
+    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin',"yellow","green"]
     times = np.linspace(analysis_dict["analysis_start"],analysis_dict["analysis_end"],int((analysis_dict["analysis_end"]-analysis_dict["analysis_start"])/analysis_dict["convolve_bin_size"]))
     mean_activity = []
     mean_maxima = []
