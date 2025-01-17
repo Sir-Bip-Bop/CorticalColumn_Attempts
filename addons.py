@@ -1,6 +1,7 @@
 import os
 import random
 import matplotlib.pyplot as plt
+import matplotlib
 from matplotlib.patches import Polygon
 
 import scipy as sp 
@@ -24,7 +25,7 @@ plt.style.use(['science'])
 analysis_dict = {
     "analysis_start": 500,
     "analysis_end": 5000,
-    "name": "connectivity_thalamus_other_test/", 
+    "name": "connectivity_thalamus_normal", 
     "synchrony_start": 500,
     "synchrony_end": 5000,
     "convolve_bin_size": 0.2,
@@ -649,7 +650,8 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     index_end = int(np.where(freq==fit_freq_end)[0][0])
 
 
-    plt.figure(figsize=(15, 5))
+    plt.figure(figsize=(25, 8))
+    matplotlib.rcParams.update({'font.size': 20})
     colors = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin','yellow','green']
     # Graficar la amplitud en función de la frecuencia
 
@@ -685,7 +687,7 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     plt.grid(True)
     plt.xlim(1,lim_x)
     plt.ylim(0,lim_y)
-    plt.legend(loc= 'best')
+    plt.legend(loc= 'best',frameon=True,title='Populations')
 
     plt.subplot(1, 4, 3)
     j= 0
@@ -701,7 +703,7 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     plt.grid(True)
     plt.xlim(1,lim_x)
     plt.ylim(low_log,high_log)
-    plt.legend(loc= 'best')
+    #plt.legend(loc= 'best')
 
     plt.subplot(1, 4, 4)
     j= 0
@@ -733,6 +735,7 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     #plt.legend(loc= 'best')
     plt.tight_layout()
     plt.xlim(1,lim_x)
+    plt.ylim(10e-9,10e-3)
     plt.yscale('log')
     plt.show()
 
