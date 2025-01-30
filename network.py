@@ -111,7 +111,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,10,15,20],std= [3,3,3,3,3,1,2,3]):
+    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [2,2,2,2,2,2,2,2],std= [1,1,1,1,1,1,1,1]):
         """Displays simulation results.
 
         Creates a spike raster plot.

@@ -366,7 +366,8 @@ def analyse_firing_rates():
             break
     return spike_rates
 
-def prepare_data(data_pop,ex_current_pop,in_current_pop):
+#def prepare_data(data_pop,ex_current_pop,in_current_pop):
+def prepare_data(data_pop):
     sd_names, node_ids, data = helpers.__load_spike_times("data_og/","spike_recorder",analysis_dict["analysis_start"], analysis_dict["analysis_end"])
 
     times = {}
@@ -381,11 +382,11 @@ def prepare_data(data_pop,ex_current_pop,in_current_pop):
 
     for i in range(len(data_pop)):
         random.shuffle(data_pop[i])
-        random.shuffle(ex_current_pop[i])
-        random.shuffle(in_current_pop[i])
+        #random.shuffle(ex_current_pop[i])
+        #random.shuffle(in_current_pop[i])
         data_voltages[names[i]] =  np.mean(data_pop[i][0:1000],axis=0)
-        data_excitatory[names[i]] = np.mean(ex_current_pop[i][0:1000],axis=0)
-        data_inhibitory[names[i]] = np.mean(in_current_pop[i][0:1000],axis=0)
+        #data_excitatory[names[i]] = np.mean(ex_current_pop[i][0:1000],axis=0)
+        #data_inhibitory[names[i]] = np.mean(in_current_pop[i][0:1000],axis=0)
         neurons = np.unique(data[i]["sender"]) 
         random.shuffle(neurons)
         chosen_ones = neurons[1:1000]
@@ -396,7 +397,8 @@ def prepare_data(data_pop,ex_current_pop,in_current_pop):
         times_help = data[i][indices]["time_ms"] 
         times[names[i]], bins[names[i]] = np.histogram(data[i][indices]["time_ms"], bins = int(analysis_dict["analysis_end"]-analysis_dict["analysis_start"]/analysis_dict["bin_size"]))
 
-    return data_voltages, data_excitatory, data_inhibitory, times, times_help
+    return data_voltages, times, times_help
+    #return data_voltages, data_excitatory, data_inhibitory, times, times_help
 
 
 def plot_correlations(data_voltages,data_excitatory,data_inhibitory,pop_activity,times,save_data=True):
@@ -641,6 +643,7 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
         Welsh_Freqs[i], Welsh_Powers[i]  = signal.welch(signal_data[i][analysis_interval_start:analysis_interval_end]-np.mean(signal_data[i][analysis_interval_start:analysis_interval_end]),fs=freq_sample_welsh)
 
     #Calcular los valores de frequencia correspondientes
+    #freq = fftfreq(len(signal_data[i][analysis_interval_start:analysis_interval_end]),d=freq_sample) * 1000
     freq = fftfreq(len(signal_data[i][analysis_interval_start:analysis_interval_end]),d=freq_sample)
     index_start = int(np.where(freq==fit_freq_start)[0][0])
     index_end = int(np.where(freq==fit_freq_end)[0][0])
@@ -705,16 +708,16 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
 
     #plt.ylim([0.5e-3, 1])
     for i in Welsh_Freqs:
-        if welsh_fit == 'alpha':
-            i_start = int(np.where((Welsh_Freqs[i] < 4) & (Welsh_Freqs[i] > 0.0))[0][0])
-            i_end = int(np.where((Welsh_Freqs[i]<22.0) & (Welsh_Freqs[i] >18.0))[0][0])
-            p0 = [0.01,10,5]
+        if fit:
+            if welsh_fit == 'alpha':
+                i_start = int(np.where((Welsh_Freqs[i] < 4) & (Welsh_Freqs[i] > 0.0))[0][0])
+                i_end = int(np.where((Welsh_Freqs[i]<22.0) & (Welsh_Freqs[i] >18.0))[0][0])
+                p0 = [0.01,10,5]
 
-        if welsh_fit == 'gamma':
-            i_start = int(np.where((Welsh_Freqs[i] <60 ) & (Welsh_Freqs[i] > 50.0))[0][0])
-            i_end = int(np.where((Welsh_Freqs[i]<120.0) & (Welsh_Freqs[i] >110.0))[0][0])
-            p0 = [0.01,80,5]
-
+            if welsh_fit == 'gamma':
+                i_start = int(np.where((Welsh_Freqs[i] <60 ) & (Welsh_Freqs[i] > 50.0))[0][0])
+                i_end = int(np.where((Welsh_Freqs[i]<120.0) & (Welsh_Freqs[i] >110.0))[0][0])
+                p0 = [0.01,80,5]
         if fit:
             Fit_Welsh[i], __ = curve_fit(gaus,Welsh_Freqs[i][i_start:i_end],Welsh_Powers[i][i_start:i_end],p0 = p0)
             mean_welsh = np.append(mean_welsh,Fit_Welsh[i][1])
@@ -731,6 +734,7 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
     plt.tight_layout()
     plt.xlim(1,lim_x)
     plt.yscale('log')
+    plt.xscale('log')
     plt.show()
 
     if save:
