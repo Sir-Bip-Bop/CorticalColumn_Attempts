@@ -23,10 +23,10 @@ plt.style.use(['science'])
 
 analysis_dict = {
     "analysis_start": 500,
-    "analysis_end": 5000,
+    "analysis_end": 60500,
     "name": "connectivity_alter_no_stimulus/", 
     "synchrony_start": 500,
-    "synchrony_end": 5000,
+    "synchrony_end": 5500,
     "convolve_bin_size": 0.2,
     "bin_size": 3,
     }
@@ -227,14 +227,15 @@ def analyse_synchrony(num_neurons,bin_width=3,t_r = 2,dt=0.01):
     analysis_interval_start_s = analysis_dict["synchrony_start"]
     analysis_interval_end_s = analysis_dict["synchrony_end"]
     
+    
     analysis_length = analysis_interval_end - analysis_interval_start
     analysis_length_s = analysis_interval_end_s - analysis_interval_start_s
     pop_activity = {}
-    if analysis_length_s - analysis_length < 0:
-        print('There is a problem. Synchrony measurement range must be larger than the other')
+    if analysis_length - analysis_length_s < 0:
+        print('There is a problem. Synchrony measurement range must be smaller than the other')
         return 
 
-    sd_names_s, node_ids, data_s = helpers.__load_spike_times("data_og/","spike_recorder",analysis_interval_start_s, analysis_interval_end_s)
+    sd_names, node_ids, data = helpers.__load_spike_times("data_og/","spike_recorder",analysis_interval_start_s, analysis_interval_end_s)
     
     helper = np.loadtxt(analysis_dict["name"]+"pop_activities/pop_activity_"+str(0)+".dat")
     sum_array = np.zeros_like(helper)
@@ -242,12 +243,12 @@ def analyse_synchrony(num_neurons,bin_width=3,t_r = 2,dt=0.01):
         pop_activity[i] = np.loadtxt(analysis_dict["name"]+"pop_activities/pop_activity_"+str(i)+".dat")
         sum_array = sum_array + pop_activity[i]
     
-    data = {}
+    data_s = {}
 
-    for i in data_s:
-        low = np.searchsorted(data_s[i]["time_ms"],v=analysis_interval_start,side="left")
-        high = np.searchsorted(data_s[i]["time_ms"],v=analysis_interval_end,side='right')
-        data[i] = data_s[i][low:high]
+    for i in data:
+        low = np.searchsorted(data[i]["time_ms"],v=analysis_interval_start_s,side="left")
+        high = np.searchsorted(data[i]["time_ms"],v=analysis_interval_end_s,side='right')
+        data_s[i] = data[i][low:high]
 
 
     synchrony_pd = []
@@ -260,7 +261,7 @@ def analyse_synchrony(num_neurons,bin_width=3,t_r = 2,dt=0.01):
 
     times_s = {}
 
-    for i, n in enumerate(sd_names_s):
+    for i, n in enumerate(sd_names):
 
         #Computing synchrony
         neurons = np.unique(data_s[i]["sender"])
@@ -290,7 +291,7 @@ def analyse_synchrony(num_neurons,bin_width=3,t_r = 2,dt=0.01):
     chi = np.var(mean_pop) / ((1 / len(num_neurons)) * sum)
 
     
-    for i,n in enumerate(sd_names_s):
+    for i,n in enumerate(sd_names):
         single_irregularity = []
         used_senders = []
         single_lvr = 0
@@ -528,64 +529,73 @@ def plot_cross_correlation(signal_1,signal_packet,signal_name,time_lag = 50, cor
 def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, lvr, lvr_pdf,chi):
     plt.figure(figsize=(18,18))
     pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
-    bar_labels = ['darkred', 'red', 'blue', 'aqua', 'green', 'lime', 'orange', 'moccasin']
-    
+    colours = ['#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5', '#3288bd']
+    fs = 18
+
 
     plt.subplot(3, 2, 1)
 
-    plt.barh(pops, synchrony_pd, color = bar_labels)
-    plt.ylabel('Populations')
-    plt.title('Synchrony')
-    plt.xlabel('Synchrony')
+    plt.barh(pops[::-1], synchrony_pd[::-1], color = colours[::-1])
+    #plt.ylabel('neuron populations', fontsize = fs)
+    #plt.title('Synchrony')
+    plt.xlabel('synchrony', fontsize = fs)
+    plt.grid(alpha = 0.5)
 
     plt.subplot(3, 2, 2)
-    plt.barh(pops, synchrony_chi, color = bar_labels)
-    plt.ylabel('Populations')
-    plt.title('Synchrony Half Bin size (Chi value ='+str(round(chi,3))+')')
-    plt.xlabel('Synchrony')
+    plt.barh(pops[::-1], synchrony_chi[::-1], color = colours[::-1])
+    #plt.ylabel('populations', fontsize = fs)
+    plt.title(r'$\chi$ =('+str(round(chi,3))+')', fontsize = fs)
+    plt.xlabel('synchrony with half bin size', fontsize = fs)
+    plt.grid(alpha = 0.5)
 
     plt.subplot(3,2,3)
-    plt.barh(pops, irregularity, color = bar_labels)
-    plt.ylabel('Populations')
-    plt.title('Irregularity')
-    plt.xlabel('Irregulatiry')
+    plt.barh(pops[::-1], irregularity[::-1], color = colours[::-1])
+    #plt.ylabel('neuron populations', fontsize =fs)
+    #plt.title('Irregularity')
+    plt.xlabel('irregulatiry', fontsize = fs)
+    plt.grid(alpha = 0.5)
 
     plt.subplot(3,2,4)
     irregularity_total = []
     for i in irregularity_pdf:
         data, bins= np.histogram(irregularity_pdf[i],density=True,bins=50)
         irregularity_total = np.append(irregularity_total,irregularity_pdf[i])
-        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = colours[i])
 
     data_t, bins_s = np.histogram(irregularity_total,density=True,bins=50)
     plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
-    plt.grid()
+   
     plt.legend()
-    plt.ylabel('Normalised Counts')
-    plt.title('P (irregularity)')
-    plt.xlabel('CV ISI')
+    plt.ylabel('P (irregularity)', fontsize = fs)
+    #plt.title('P (irregularity)', fontsize = fs)
+    plt.xlabel('CV ISI', fontsize = fs)
+    plt.grid(alpha = 0.5)
+    plt.xlim(0,1.8)
+    plt.ylim(0,3.6)
 
     plt.subplot(3,2,5)
-    plt.barh(pops,lvr, color = bar_labels)
-    plt.ylabel('Populations')
-    plt.title('LvR')
-    plt.xlabel('LvR')
+    plt.barh(pops[::-1],lvr[::-1], color = colours[::-1])
+    #plt.ylabel('populations', fontsize = fs)
+    #plt.title('LvR')
+    plt.xlabel('LvR', fontsize = fs)
+    plt.grid(alpha = 0.5)
 
     plt.subplot(3,2,6)
     lvr_total = []
     for i in lvr_pdf:
         data, bins= np.histogram(lvr_pdf[i],density=True)
         lvt_total = np.append(lvr_total,lvr_pdf[i])
-        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = bar_labels[i])
+        plt.plot(bins[:-1],data,alpha=0.3+i*0.1, label = pops[i], color = colours[i])
 
     data_t, bins_s = np.histogram(lvr_total,density=True)
     plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
-    plt.grid()
+    plt.grid(alpha = 0.5)
     plt.legend()
-    plt.ylabel('Normalised Counts')
-    plt.title('P (LvR)')
-    plt.xlabel('LvR')
-    plt.show()
+    plt.ylabel('P (LvR)', fontsize = fs)
+    #plt.title('P (LvR)')
+    plt.xlim(0,8)
+    plt.ylim(0,2.1)
+    plt.xlabel('LvR', fontsize =fs)
 
 def plot_firing_rates(spike_rates):
     plt.figure(figsize=(12,7))
@@ -595,7 +605,7 @@ def plot_firing_rates(spike_rates):
     plt.subplot(1,2,1)
     for i in spike_rates:
         plt.hist(spike_rates[i],color=bar_labels[i],alpha = 0.3 + i*0.1, label = pops[i])
-    plt.grid()
+    plt.grid(alpha = 0.5)
     plt.legend()
     plt.ylabel('Counts')
     plt.title('Firing rate histogram')
@@ -610,7 +620,7 @@ def plot_firing_rates(spike_rates):
 
     data_t, bins_s = np.histogram(spike_total,density=True)
     plt.plot(bins[:-1],data_t, label = 'Total', color = 'black', ls = 'dashed')
-    plt.grid()
+    plt.grid(alpha = 0.5)
     plt.legend()
     plt.ylabel('Normalised Counts')
     plt.title('P (rate)')
