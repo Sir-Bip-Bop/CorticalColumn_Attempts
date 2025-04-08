@@ -27,13 +27,22 @@ class Network:
 
     """
 
-    def __init__(self, sim_dict, net_dict, stim_dict=None):
+    def __init__(self, sim_dict, net_dict, stim_dict=None,path=None,bg_rate =None,ref_period=None,matrix=None,PSP_mean=None,th_rate=0,stim_time=None):
         self.sim_dict = sim_dict
         self.net_dict = net_dict
         self.stim_dict = stim_dict
-
+        self.PSP_mean = PSP_mean
         # data directory
-        self.data_path = sim_dict["data_path"]
+        if path == None:
+            self.data_path = sim_dict["data_path"]
+        else:
+            self.data_path = path
+        
+        self.th_rate = th_rate
+        self.matrix_delays = matrix
+        self.ref_period = ref_period
+        self.bg_rate = bg_rate
+        self.stim_time = stim_time
         if nest.Rank() == 0: #this function returns the MPI rank of the local process, which is 0 in the case where the network has not yet been initialised
             if os.path.isdir(self.data_path):
                 message = "  Directory already existed."
@@ -45,7 +54,7 @@ class Network:
             print("Data will be written to: {}\n{}\n".format(self.data_path, message))
 
         # derive parameters based on input dictionaries
-        self.__derive_parameters()
+        self.__derive_parameters(PSP_mean=PSP_mean)
 
         # initialize the NEST kernel
         self.__setup_nest()
@@ -63,6 +72,9 @@ class Network:
             self.__create_poisson_bg_input()
         if self.stim_dict["thalamic_input"]:
             self.__create_thalamic_stim_input()
+        if self.stim_dict["external_input"]:
+            if self.stim_time != None:
+                self.__create_external_stim_input()
         if self.stim_dict["dc_input"]:
             self.__create_dc_stim_input()
 
@@ -91,6 +103,9 @@ class Network:
             self.__connect_poisson_bg_input()
         if self.stim_dict["thalamic_input"]:
             self.__connect_thalamic_stim_input()
+        if self.stim_dict["external_input"]:
+            if self.stim_time != None:
+                self.__connect_external_stim_input()
         if self.stim_dict["dc_input"]:
             self.__connect_dc_stim_input()
 
@@ -111,7 +126,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [2,2,2,2,2,2,2,2],std= [1,1,1,1,1,1,1,1]):
+    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,20,20,20],std= [1,1,1,1,1,1,1,1],trial=10):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -143,13 +158,14 @@ class Network:
                 binned,
                 M,
                 std,
+                trial
             )
 
             print("Interval to compute firing rates: {} ms".format(firing_rates_interval))
             helpers.firing_rates(self.data_path, "spike_recorder", firing_rates_interval[0], firing_rates_interval[1])
-            helpers.boxplot(self.data_path, self.net_dict["populations"])
+            helpers.boxplot(self.data_path, self.net_dict["populations"],trial)
         return pop_activity
-    def __derive_parameters(self):
+    def __derive_parameters(self,PSP_mean=None):
         """
         Derives and adjusts parameters and stores them as class attributes.
         """
@@ -173,7 +189,10 @@ class Network:
             self.net_dict["neuron_params"]["tau_m"],
             self.net_dict["neuron_params"]["tau_syn"],
         )
-        PSC_matrix_mean = self.net_dict["PSP_matrix_mean"] * PSC_over_PSP
+        if PSP_mean != None:
+            PSC_matrix_mean = PSP_mean * PSC_over_PSP
+        else:
+            PSC_matrix_mean = self.net_dict["PSP_matrix_mean"] * PSC_over_PSP
         PSC_ext = self.net_dict["PSP_exc_mean"] * PSC_over_PSP
 
         # DC input compensates for potentially missing Poisson input
@@ -260,6 +279,10 @@ class Network:
             print("Creating neuronal populations.")
 
         self.pops = []
+        if self.ref_period != None:
+            t_ref = self.ref_period
+        else:
+            t_ref = self.net_dict["neuron_params"]["t_ref"]
         for i in np.arange(self.num_pops):
             population = nest.Create(self.net_dict["neuron_model"], self.num_neurons[i])
 
@@ -269,8 +292,8 @@ class Network:
                 E_L=self.net_dict["neuron_params"]["E_L"],
                 V_th=self.net_dict["neuron_params"]["V_th"],
                 V_reset=self.net_dict["neuron_params"]["V_reset"],
-                t_ref=nest.random.normal(self.net_dict["neuron_params"]["t_ref"],self.net_dict["neuron_params"]["t_std"],),
-                #t_ref = self.net_dict["neuron_params"]["t_ref"],
+                t_ref=nest.random.normal(t_ref,self.net_dict["neuron_params"]["t_std"],),
+                #t_ref = t_ref,
                 I_e=self.DC_amp[i],
             )
 
@@ -365,9 +388,25 @@ class Network:
         if nest.Rank() == 0:
             print("Creating Poisson generators for background input.")
 
+        self.ppgs = {}
         self.poisson_bg_input = nest.Create("poisson_generator", n=self.num_pops)
-        self.poisson_bg_input.rate = self.net_dict["bg_rate"] * self.ext_indegrees
+        if self.bg_rate:
+            self.poisson_bg_input.rate = self.bg_rate * self.ext_indegrees
+        else:
+            self.poisson_bg_input.rate = self.net_dict["bg_rate"] * self.ext_indegrees
+    def __create_external_stim_input(self):
+        """Creates the external neuronal population if specified in
+        ``stim_dict``.
 
+        """
+        if nest.Rank() == 0:
+            print("Creating external input for external stimulation.")
+
+        ppg_args = {"pulse_times": [self.stim_time], "activity": self.stim_dict["activity"], "sdev": self.stim_dict["sdev"]}
+        n_neurons = self.num_neurons[self.stim_dict["target_pop"]]
+        for i in range(len(n_neurons)):
+            self.ppgs[i] = nest.Create('pulsepacket_generator',n_neurons[i],ppg_args)
+        
     def __create_thalamic_stim_input(self):
         """Creates the thalamic neuronal population if specified in
         ``stim_dict``.
@@ -390,10 +429,15 @@ class Network:
 
         self.thalamic_population = nest.Create("parrot_neuron", n=self.stim_dict["num_th_neurons"])
 
+        if self.th_rate != 0:
+            rate = self.th_rate
+        else:
+            rate = self.stim_dict["th_rate"]
+
         if self.stim_dict["input_type"] == 'poisson':
             self.poisson_th = nest.Create("poisson_generator")
             self.poisson_th.set(
-                rate=self.stim_dict["th_rate"],
+                rate=rate,
                 start=self.stim_dict["th_start"],
                 stop=(self.stim_dict["th_start"] + self.stim_dict["th_duration"]),
             )
@@ -406,6 +450,14 @@ class Network:
                 #pulse_times = [500,510,520],
                 activity = int(self.stim_dict["th_rate"]),
                 sdev = self.stim_dict["th_dev"],
+            )
+        if self.stim_dict["input_type"] == "gamma":
+            self.poisson_th = nest.Create("sinusoidal_gamma_generator")
+            self.poisson_th.set(
+                start = self.stim_dict["th_start"],
+                stop = self.stim_dict["th_start"] + self.stim_dict["th_duration"],
+                rate = rate,
+                frequency = self.stim_dict["frequency"],
             )
 
     def __create_dc_stim_input(self):
@@ -432,6 +484,11 @@ class Network:
         if nest.Rank() == 0:
             print("Connecting neuronal populations recurrently.")
 
+        if self.matrix_delays !=None:
+            delay_matrix_mean = self.matrix_delays
+        else:
+            delay_matrix_mean = self.net_dict["delay_matrix_mean"]
+
         for i, target_pop in enumerate(self.pops):
             for j, source_pop in enumerate(self.pops):
                 if self.num_synapses[i][j] >= 0.0:
@@ -456,8 +513,8 @@ class Network:
                         ),
                         "delay": nest.math.redraw(
                             nest.random.normal(
-                                mean=self.net_dict["delay_matrix_mean"][i][j],
-                                std=(self.net_dict["delay_matrix_mean"][i][j] * self.net_dict["delay_rel_std"]),
+                                mean=delay_matrix_mean[i][j],
+                                std=(delay_matrix_mean[i][j] * self.net_dict["delay_rel_std"]),
                             ),
                             # resulting minimum delay is equal to resolution, see:
                             # https://nest-simulator.readthedocs.io/en/latest/nest_behavior
@@ -535,6 +592,16 @@ class Network:
             }
 
             nest.Connect(self.thalamic_population, target_pop, conn_spec=conn_dict_th, syn_spec=syn_dict_th)
+    def __connect_external_stim_input(self):
+        """Connects the external pulse packet to the neuronal populations."""
+
+        if nest.Rank() == 0:
+            print("Connecting DC generators.")
+        j = 0
+        for i, target_pop in enumerate(self.pops):
+            if i in self.stim_dict["target_pop"]:
+                nest.Connect(self.ppgs[j], target_pop, "one_to_one", syn_spec= {"weight": self.stim_dict["weight"]})
+                j = j+1
 
     def __connect_dc_stim_input(self):
         """Connects the DC generators to the neuronal populations."""

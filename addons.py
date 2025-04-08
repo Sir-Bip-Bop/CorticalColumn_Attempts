@@ -22,11 +22,14 @@ plt.style.use(['science'])
 
 
 analysis_dict = {
-    "analysis_start": 500,
-    "analysis_end": 60500,
+    "analysis_start": 900, #900  
+    "analysis_end": 1100, #1100
+
     "name": "connectivity_alter_no_stimulus/", 
-    "synchrony_start": 500,
-    "synchrony_end": 5500,
+    "synchrony_start": 900, #1000
+    "synchrony_end": 1100, #1100
+
+    
     "convolve_bin_size": 0.2,
     "bin_size": 3,
     }
@@ -531,7 +534,8 @@ def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, 
     pops = ["L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
     colours = ['#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5', '#3288bd']
     fs = 18
-
+    medianprops = dict(linestyle="-", linewidth=2.5, color="black")
+    meanprops = dict(linestyle="--", linewidth=2.5, color="darkgray")
 
     plt.subplot(3, 2, 1)
 
@@ -549,13 +553,34 @@ def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, 
     plt.grid(alpha = 0.5)
 
     plt.subplot(3,2,3)
-    plt.barh(pops[::-1], irregularity[::-1], color = colours[::-1])
+    #plt.barh(pops[::-1], irregularity[::-1], color = colours[::-1])
+    test = []
+    colours = ['#3288bd','#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5']
+    label_pos = list(range(len(pops),0,-1))
+    for i in np.arange(len(pops)):
+        test.append(irregularity_pdf[i])
+    bp = plt.boxplot(test, 0, "rs",0,medianprops=medianprops,meanprops=meanprops, meanline=True, showmeans=True, orientation='horizontal')
     #plt.ylabel('neuron populations', fontsize =fs)
     #plt.title('Irregularity')
+    label_pos = list(range(len(pops), 0, -1))
+    for i in np.arange(len(pops)):
+        boxX = []
+        boxY = []
+        box = bp["boxes"][i]
+        for j in list(range(5)):
+            boxX.append(box.get_xdata()[j])
+            boxY.append(box.get_ydata()[j])
+        boxCoords = list(zip(boxX, boxY))
+        k = i % 2
+        boxPolygon = Polygon(boxCoords, facecolor=colours[-i])
+        plt.gca().add_patch(boxPolygon)
     plt.xlabel('irregulatiry', fontsize = fs)
+    plt.yticks(label_pos, pops, fontsize=fs)
     plt.grid(alpha = 0.5)
 
     plt.subplot(3,2,4)
+    colours = ['#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5', '#3288bd']
+
     irregularity_total = []
     for i in irregularity_pdf:
         data, bins= np.histogram(irregularity_pdf[i],density=True,bins=50)
@@ -574,13 +599,33 @@ def plot_synchrony(synchrony_pd, synchrony_chi, irregularity, irregularity_pdf, 
     plt.ylim(0,3.6)
 
     plt.subplot(3,2,5)
-    plt.barh(pops[::-1],lvr[::-1], color = colours[::-1])
-    #plt.ylabel('populations', fontsize = fs)
+    colours = ['#3288bd','#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5']
+    label_pos = list(range(len(pops),0,-1))
+    test = []
+    for i in np.arange(len(pops)):
+        test.append(lvr_pdf[i])
+    bp = plt.boxplot(test, 0, "rs",0,medianprops=medianprops,meanprops=meanprops, meanline=True, showmeans=True, orientation='horizontal')
+    #plt.ylabel('neuron populations', fontsize =fs)
+    #plt.title('Irregularity')
+    label_pos = list(range(len(pops), 0, -1))
+    for i in np.arange(len(pops)):
+        boxX = []
+        boxY = []
+        box = bp["boxes"][i]
+        for j in list(range(5)):
+            boxX.append(box.get_xdata()[j])
+            boxY.append(box.get_ydata()[j])
+        boxCoords = list(zip(boxX, boxY))
+        k = i % 2
+        boxPolygon = Polygon(boxCoords, facecolor=colours[-i])
+        plt.gca().add_patch(boxPolygon)
     #plt.title('LvR')
+    plt.yticks(label_pos, pops, fontsize=fs)
     plt.xlabel('LvR', fontsize = fs)
     plt.grid(alpha = 0.5)
 
     plt.subplot(3,2,6)
+    colours = ['#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5', '#3288bd']
     lvr_total = []
     for i in lvr_pdf:
         data, bins= np.histogram(lvr_pdf[i],density=True)
@@ -625,7 +670,9 @@ def plot_firing_rates(spike_rates):
     plt.ylabel('Normalised Counts')
     plt.title('P (rate)')
     plt.xlabel('Firing rate (spikes/s)')
+    plt.savefig("test_synchrony.svg", dpi=300)
     plt.show()
+
 
 
 def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 7000, lim_x = 200, low_log = 10, high_log =90,fit=False,fit_freq_start = 4.0, fit_freq_end = 14.0,test_p0 = [30,10,5],welsh_fit = 'alpha',signal_xmin=500,signal_xmax=700,save=True,name_='freq.dat'):
@@ -754,11 +801,13 @@ def compute_FFT(signal_data,freq_sample= 0.001,freq_sample_welsh = 1000,lim_y = 
         pops = [0,1,2,3,4,5,6,7]
         np.savetxt(analysis_dict["name"] + name_, np.c_[pops,mean_final, amplitude_final, sigma_final], fmt = '%.2f', header = 'Pops mean_freq amplitude sigma')
 
-def butter_bandpass(lowcut, highcut, fs, order=5):
-    return butter(order, [lowcut, highcut], fs=fs, btype='band')
+    return FFT_Results, freq, Welsh_Freqs, Welsh_Powers, indx
 
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
-    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+def butter_bandpass(lowcut, highcut, fs, order=5,btype='band'):
+    return butter(order, [lowcut, highcut], fs=fs, btype=btype)
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5,btype='band'):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order,btype=btype)
     y = lfilter(b, a, data)
     return y
 

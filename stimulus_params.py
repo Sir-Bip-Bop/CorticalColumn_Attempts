@@ -5,17 +5,21 @@ stim_dict = {
     # turn thalamic input on or off (True or False)
     "thalamic_input": False,
 
-    "input_type": 'gaussian_pulse', #poisson, gaussian_pulse
+    "external_input": True,
+
+    "target_pop": [2],
+
+    "input_type": 'pulse_packet', #poisson, gaussian_pulse, gamma, pulse packet
     # start of the thalamic input (in ms)
     "th_start": 500.0,
     # duration of the thalamic input (in ms)
     "th_duration": 5000.0,
     # rate of the thalamic input (in spikes/s)
-    "th_rate": 2.0,
+    "th_rate": 12.0,
 
     "th_dev": 20,
     # number of thalamic neurons
-    "num_th_neurons": 500, #902
+    "num_th_neurons": 902, #902
 
     "pulse_number": 50,
     # connection probabilities of the thalamus to the different populations
@@ -38,4 +42,14 @@ stim_dict = {
     # amplitude of the DC input (in pA); final amplitude is population-specific
     # and will be obtained by multiplication with 'K_ext'
     "dc_amp": 0.3,
+
+    "spike_weights": 0.7,
+
+    "frequency": 20,
+
+    "activity": 600, #num of spikes in one pulse packet
+    "sdev": 1.0, #width of pulse packet (ms)
+    "weight": 2.0, #psp amplitude (mV)
+    "pulsetime": 1000, #occurrence time (center) of pulse packet(in ms)
+
 }

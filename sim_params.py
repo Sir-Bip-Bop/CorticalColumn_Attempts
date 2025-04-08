@@ -6,13 +6,13 @@ sim_dict = {
     # presimulation time (in ms)
     "t_presim": 500.0,
     # simulation time (in ms)
-    "t_sim": 60500.0, #1000
+    "t_sim": 1500.0, #1000
     # resolution of the simulation (in ms)
     "sim_resolution": 0.1,
     # list of recording devices, default is 'spike_recorder'. A 'voltmeter' can
     # be added to record membrane voltages of the neurons. Nothing will be
     # recorded if an empty list is given.
-    "rec_dev": ["spike_recorder", "voltmeter"],#["spike_recorder","voltmeter", "synaptic_ex","synaptic_in"], 
+    "rec_dev": ["spike_recorder","voltmeter","synaptic_ex","synaptic_in"],#["spike_recorder","voltmeter", "synaptic_ex","synaptic_in"], 
     # path to save the output data
     "data_path": os.path.join(os.getcwd(), "data_og/"),
     # Seed for NEST
@@ -27,7 +27,7 @@ sim_dict = {
     # recording interval of the membrane potential (in ms)
     "rec_V_int": 1.0,
     "start" : 500,
-    "stop": 5000,
+    "stop": 1500,
     # if True, data will be overwritten,
     # if False, a NESTError is raised if the files already exist
     "overwrite_files": True,

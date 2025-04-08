@@ -16,3 +16,11 @@ test.py
 __pycache__
 output_1.png
 output_2.png
+stimulation/data_pulse_packet_example
+data_background_rate
+data_excitatory_delay
+data_inhibitory_delay
+data_inhibitory_strength
+data_refractory_period
+data_gamma_stimulation
+data_step_stimulation

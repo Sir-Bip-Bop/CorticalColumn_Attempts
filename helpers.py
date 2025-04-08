@@ -183,7 +183,7 @@ def adjust_weights_and_input_to_synapse_scaling(
     return PSC_matrix_new, PSC_ext_new, DC_amp_new
 
 
-def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
+def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial):
     """Creates a spike raster plot of the network activity.
 
     Parameters
@@ -223,12 +223,13 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
     if binned:
         stp = 1
         if N_scaling > 0.1:
-            stp = int(10.0 * N_scaling)
+            stp = int(1.0 * N_scaling)
             print("  Only spikes of neurons in steps of {} are shown.".format(stp))
 
-        fig = plt.figure(figsize=(11,16))
-        ax = fig.add_subplot(111,label='1')
-        ax2 = fig.add_subplot(111, label = "2", frame_on=False)
+        if trial ==0 :
+            fig = plt.figure(figsize=(11,16))
+            ax = fig.add_subplot(111,label='1')
+            ax2 = fig.add_subplot(111, label = "2", frame_on=False)
 
         for i, n in enumerate(sd_names):
             times = data[i]["time_ms"]
@@ -236,6 +237,9 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
             pop_activity, bins = np.histogram(times,bins=int((end-begin)/addons.analysis_dict["convolve_bin_size"]))
             window = signal.windows.gaussian(M[i],std[i])
             filtered_signal[i] = signal.convolve(pop_activity,window,mode='same')
+            lowcut_gamma = 25 #35
+            highcut_gamma = 40 #95
+            #filtered_signal[i] =  addons.butter_bandpass_filter(filtered_signal[i],lowcut= lowcut_gamma,highcut=highcut_gamma,fs=1000,order=3)
             norm = np.linalg.norm(filtered_signal[i])
             high = neurons[-1]
             low = neurons[0]
@@ -244,19 +248,22 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
                 label_pos[i] = filtered_signal_plot[0]
             else:
                 filtered_signal_plot = filtered_signal[i] /norm * 5 * np.abs(high - low) + label_pos[i]
+            if trial ==0:
 
-            ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
-            ax2.plot(filtered_signal_plot, linewidth= 3, color=bar_labels[i])
+                ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
+                ax2.plot(filtered_signal_plot, linewidth= 3, color=bar_labels[i])
 
-        ax.set_xlabel("time (ms)", fontsize=fs)
-        ax.set_yticks(label_pos, ylabels, fontsize=fs)
-        ax2.set_xticks([])
-        ax.set_xlim(begin,end)
-        ax2.set_yticks([])
-        ax2.set_xlim(0,len(filtered_signal_plot))
-        ax.set_ylim(0,last_node_id)
-        ax2.set_ylim(0,last_node_id)
-        plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
+
+        if trial==0:
+            ax.set_xlabel("time (ms)", fontsize=fs)
+            ax.set_yticks(label_pos, ylabels, fontsize=fs)
+            ax2.set_xticks([])
+            ax.set_xlim(begin,end)
+            ax2.set_yticks([])
+            ax2.set_xlim(0,len(filtered_signal_plot))
+            ax.set_ylim(0,last_node_id)
+            ax2.set_ylim(0,last_node_id)
+            plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
     else:
         color_list = bar_labels
         ylabels = ["L2/3","L4","L5","L6"]
@@ -276,20 +283,34 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std):
         plt.xlim(begin,end)
         plt.ylim(0,last_node_id)
         plt.yticks(label_pos, ylabels, fontsize=fs)
-        plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
+        plt.savefig(os.path.join(path, "raster_plot.svg"), dpi=300)
     
     filtered_signal_complete = {}
+    times_a = {}
     sd_names, node_ids, data_analysis = __load_spike_times(path, name, addons.analysis_dict["analysis_start"], addons.analysis_dict["analysis_end"])
 
+    if os.path.isdir(os.path.join(path,"measurements/")):
+        print("Directory already existed")
+    else:
+        os.mkdir(os.path.join(path,"measurements/"))
+
+    if os.path.isdir(os.path.join(path,"measurements/pop_activities/")):
+        print("Directory already existed")
+    else:
+        os.mkdir(os.path.join(path,"measurements/pop_activities/"))
+
     for i, n in enumerate(sd_names):
-        times_a = data_analysis[i]["time_ms"]
-        pop_activity_a, bins = np.histogram(times_a,bins=int((addons.analysis_dict["analysis_end"]-addons.analysis_dict["analysis_start"])/addons.analysis_dict["convolve_bin_size"]))
+        times_ = data_analysis[i]["time_ms"]
+        pop_activity_a, times_a[i] = np.histogram(times_,bins=int((addons.analysis_dict["analysis_end"]-addons.analysis_dict["analysis_start"])/addons.analysis_dict["convolve_bin_size"]))
         window = signal.windows.gaussian(M[i],std[i])
         filtered_signal_complete[i] = signal.convolve(pop_activity_a,window,mode='same')
         #TODO: Decide/ask if we want to normalise the signal activity or leave it as is.
         #filtered_signal_complete[i] = (filtered_signal_complete[i] - np.min(filtered_signal_complete[i])) / (np.max(filtered_signal_complete[i])-np.min(filtered_signal_complete[i]))
-        np.savetxt(addons.analysis_dict["name"] + "pop_activities/pop_activity_"+str(i)+".dat",filtered_signal_complete[i])
-    return filtered_signal_complete
+        
+        np.savetxt(path +"measurements/pop_activities/pop_activity_"+str(i)+".dat",filtered_signal_complete[i])
+        np.savetxt(path +"measurements/times/times_"+str(i)+".dat",times_a[i])
+
+    return filtered_signal_complete, times_a
    
 
 def firing_rates(path, name, begin, end):
@@ -331,13 +352,13 @@ def firing_rates(path, name, begin, end):
         all_mean_rates.append(np.mean(rate_per_neuron))
         all_std_rates.append(np.std(rate_per_neuron))
 
-    np.savetxt(os.path.join(path, ("../"+addons.analysis_dict["name"]+"mean_rate.dat")),all_mean_rates)
-    np.savetxt(os.path.join(path, ("../"+addons.analysis_dict["name"]+"std_rate.dat")),all_std_rates)
+    np.savetxt(os.path.join(path, ("measurements/mean_rate.dat")),all_mean_rates)
+    np.savetxt(os.path.join(path, ("measurements/std_rate.dat")),all_std_rates)
     print("Mean rates: {} spikes/s".format(np.around(all_mean_rates, decimals=3)))
     print("Standard deviation of rates: {} spikes/s".format(np.around(all_std_rates, decimals=3)))
 
 
-def boxplot(path, populations):
+def boxplot(path, populations,trial):
     """Creates a boxblot of the firing rates of all populations.
 
     To create the boxplot, the firing rates of each neuron in each population
@@ -366,33 +387,33 @@ def boxplot(path, populations):
     rates_per_neuron_rev = []
     for i in np.arange(len(populations))[::-1]:
         rates_per_neuron_rev.append(np.loadtxt(os.path.join(path, ("rate" + str(i) + ".dat"))))
-
-    plt.figure(figsize=(8, 6))
-    bp = plt.boxplot(
-        rates_per_neuron_rev, 0, "rs", 0, medianprops=medianprops, meanprops=meanprops, meanline=True, showmeans=True
-    )
-    plt.setp(bp["boxes"], color="black")
-    plt.setp(bp["whiskers"], color="black")
-    plt.setp(bp["fliers"], color="red", marker="+")
+    if trial == 0:
+        plt.figure(figsize=(8, 6))
+        bp = plt.boxplot(
+            rates_per_neuron_rev, 0, "rs", 0, medianprops=medianprops, meanprops=meanprops, meanline=True, showmeans=True, orientation='horizontal'
+        )
+        plt.setp(bp["boxes"], color="black")
+        plt.setp(bp["whiskers"], color="black")
+        plt.setp(bp["fliers"], color="red", marker="+")
     
     
     # boxcolors
-    for i in np.arange(len(populations)):
-        boxX = []
-        boxY = []
-        box = bp["boxes"][i]
-        for j in list(range(5)):
-            boxX.append(box.get_xdata()[j])
-            boxY.append(box.get_ydata()[j])
-        boxCoords = list(zip(boxX, boxY))
-        k = i % 2
-        boxPolygon = Polygon(boxCoords, facecolor=color_list[-i])
-        plt.gca().add_patch(boxPolygon)
-    plt.xlabel("firing rate (spikes/s)", fontsize=fs)
-    plt.yticks(label_pos, pop_names, fontsize=fs)
-    plt.xticks(fontsize=fs)
-    plt.grid()
-    plt.savefig(os.path.join(path, "box_plot.png"), dpi=300)
+        for i in np.arange(len(populations)):
+            boxX = []
+            boxY = []
+            box = bp["boxes"][i]
+            for j in list(range(5)):
+                boxX.append(box.get_xdata()[j])
+                boxY.append(box.get_ydata()[j])
+            boxCoords = list(zip(boxX, boxY))
+            k = i % 2
+            boxPolygon = Polygon(boxCoords, facecolor=color_list[-i])
+            plt.gca().add_patch(boxPolygon)
+        plt.xlabel("firing rate (spikes/s)", fontsize=fs)
+        plt.yticks(label_pos, pop_names, fontsize=fs)
+        plt.yticks(fontsize=fs)
+        plt.grid()
+        plt.savefig(os.path.join(path, "box_plot.svg"), dpi=300)
 
 
 
