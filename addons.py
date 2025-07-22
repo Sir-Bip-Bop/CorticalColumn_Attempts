@@ -22,12 +22,15 @@ plt.style.use(['science'])
 
 
 analysis_dict = {
-    "analysis_start": 900, #900  
-    "analysis_end": 1100, #1100
+    "analysis_start": 500, #900  
+    "analysis_end": 60500, #1100
+
+    "start_periodic": 950,
+    "end_periodic": 1450,
 
     "name": "connectivity_alter_no_stimulus/", 
-    "synchrony_start": 900, #1000
-    "synchrony_end": 1100, #1100
+    "synchrony_start": 500, #1000
+    "synchrony_end": 60500, #1100
 
     
     "convolve_bin_size": 0.2,

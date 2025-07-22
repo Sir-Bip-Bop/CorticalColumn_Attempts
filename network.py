@@ -4,6 +4,8 @@ import warnings
 import helpers
 import nest
 import numpy as np
+import pickle
+import pandas as pd
 
 
 class Network:
@@ -59,7 +61,7 @@ class Network:
         # initialize the NEST kernel
         self.__setup_nest()
 
-    def create(self):
+    def create(self,bg_rate=None,rate='random'):
         """Creates all network nodes.
 
         Neuronal populations and recording and stimulation devices are created.
@@ -69,7 +71,7 @@ class Network:
         if len(self.sim_dict["rec_dev"]) > 0:
             self.__create_recording_devices()
         if self.net_dict["poisson_input"]:
-            self.__create_poisson_bg_input()
+            self.__create_poisson_bg_input(bg_rate=bg_rate,rate=rate)
         if self.stim_dict["thalamic_input"]:
             self.__create_thalamic_stim_input()
         if self.stim_dict["external_input"]:
@@ -78,7 +80,23 @@ class Network:
         if self.stim_dict["dc_input"]:
             self.__create_dc_stim_input()
 
-    def connect(self):
+    def create_2(self):
+        """Creates all network nodes.
+
+        Neuronal populations and recording and stimulation devices are created.
+
+        """
+        self.__create_neuronal_populations()
+        if len(self.sim_dict["rec_dev"]) > 0:
+            self.__create_recording_devices()
+        self.__connect_neuronal_populations()
+        self.__connect_recording_devices()
+
+    def create_3(self,bg_rates=None):
+        self.__create_poisson_bg_input(bg_rate=bg_rates)
+        self.__connect_poisson_bg_input()
+
+    def connect(self,connect_type="all",rate=None):
         """Connects the network.
 
         Recurrent connections among neurons of the neuronal populations are
@@ -105,12 +123,91 @@ class Network:
             self.__connect_thalamic_stim_input()
         if self.stim_dict["external_input"]:
             if self.stim_time != None:
-                self.__connect_external_stim_input()
+                self.__connect_external_stim_input(connect_type,rate)
         if self.stim_dict["dc_input"]:
             self.__connect_dc_stim_input()
 
         nest.Prepare()
         nest.Cleanup()
+
+    def store(self, dump_filename):
+        """
+        Store neuron membrane potential and synaptic weights to given file.
+        """
+
+        assert nest.NumProcesses() == 1, "Cannot dump MPI parallel"
+
+        ###############################################################################
+        # Build dictionary with relevant network information:
+        #
+        #   - membrane potential for all neurons in each population
+        #   - source, target and weight of all connections
+        #
+        # Dictionary entries are Pandas Dataframes.
+        #
+        # Strictly speaking, we would not need to store the weight of the inhibitory
+        # synapses since they are fixed, but we do so out of symmetry and to make it
+        # easier to add plasticity for inhibitory connections later.
+
+        print("Yoooooooooooooooooooooo")
+        network = {}
+        network["n_vp"] = nest.total_num_virtual_procs
+        for i, pop in enumerate(self.pops):
+            network["pop_{}".format(i)] = pop.get(["V_m"], output="pandas")
+
+        print("Hellooooo")
+        network["syns"] = nest.GetConnections(synapse_model="static_synapse").get(
+            ("source", "target", "weight"), output="pandas"
+        )
+
+        with open(dump_filename, "wb") as f:
+            pickle.dump(network, f, pickle.HIGHEST_PROTOCOL)
+
+    def restore(self, dump_filename):
+        """
+        Restore network from data in file combined with base information in the class.
+        """
+
+        assert nest.NumProcesses() == 1, "Cannot load MPI parallel"
+
+        with open(dump_filename, "rb") as f:
+            network = pickle.load(f)
+
+        assert network["n_vp"] == nest.total_num_virtual_procs, "N_VP must match"
+
+        ###############################################################################
+        # Reconstruct neurons
+        # Since NEST does not understand Pandas Series, we must pass the values as
+        # NumPy arrays
+        self.e_neurons = nest.Create(self.neuron_model, n=self.nE, params={"V_m": network["e_nrns"].V_m.values})
+        self.i_neurons = nest.Create(self.neuron_model, n=self.nI, params={"V_m": network["i_nrns"].V_m.values})
+        self.neurons = self.e_neurons + self.i_neurons
+
+        ###############################################################################
+        # Reconstruct instrumentation
+        self.pg = nest.Create("poisson_generator", {"rate": self.poisson_rate})
+        self.sr = nest.Create("spike_recorder")
+
+        ###############################################################################
+        # Reconstruct connectivity
+        nest.Connect(
+            network["e_syns"].source.values,
+            network["e_syns"].target.values,
+            "one_to_one",
+            {"synapse_model": "e_syn", "weight": network["e_syns"].weight.values},
+        )
+
+        nest.Connect(
+            network["i_syns"].source.values,
+            network["i_syns"].target.values,
+            "one_to_one",
+            {"synapse_model": "i_syn", "weight": network["i_syns"].weight.values},
+        )
+
+        ###############################################################################
+        # Reconnect instruments
+        nest.Connect(self.pg, self.neurons, "all_to_all", {"weight": self.JE})
+        nest.Connect(self.e_neurons, self.sr)
 
     def simulate(self, t_sim):
         """Simulates the microcircuit.
@@ -126,7 +223,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,20,20,20],std= [1,1,1,1,1,1,1,1],trial=10):
+    def  evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [10,10,10,10,10,10,10,10],std= [3,3,3,3,3,3,3,3],trial=10,raster=True,plot=False):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -158,12 +255,14 @@ class Network:
                 binned,
                 M,
                 std,
-                trial
+                trial,
+                plot=plot
             )
 
             print("Interval to compute firing rates: {} ms".format(firing_rates_interval))
             helpers.firing_rates(self.data_path, "spike_recorder", firing_rates_interval[0], firing_rates_interval[1])
-            helpers.boxplot(self.data_path, self.net_dict["populations"],trial)
+            if raster:
+                helpers.boxplot(self.data_path, self.net_dict["populations"],trial)
         return pop_activity
     def __derive_parameters(self,PSP_mean=None):
         """
@@ -377,7 +476,7 @@ class Network:
             self.in_ammeters = nest.Create("voltmeter",n=self.num_pops,params=ex_dict)
         
 
-    def __create_poisson_bg_input(self):
+    def __create_poisson_bg_input(self,bg_rate=None,rate='random'):
         """Creates the Poisson generators for ongoing background input if
         specified in ``network_params.py``.
 
@@ -385,15 +484,24 @@ class Network:
         in ``create_neuronal_populations()``.
 
         """
+        if bg_rate:
+            self.bg_rate = bg_rate
         if nest.Rank() == 0:
             print("Creating Poisson generators for background input.")
 
         self.ppgs = {}
         self.poisson_bg_input = nest.Create("poisson_generator", n=self.num_pops)
         if self.bg_rate:
-            self.poisson_bg_input.rate = self.bg_rate * self.ext_indegrees
+            if rate == 'random':
+                self.poisson_bg_input.rate = np.abs(np.random.normal(loc=self.bg_rate,scale=1)) * self.ext_indegrees
+            if rate == 'fixed':
+                self.poisson_bg_input.rate = self.bg_rate * self.ext_indegrees
         else:
-            self.poisson_bg_input.rate = self.net_dict["bg_rate"] * self.ext_indegrees
+            if rate == 'random':
+                self.poisson_bg_input.rate =np.random.normal(loc= self.net_dict["bg_rate"],scale=1)  * self.ext_indegrees
+            if rate == 'fixed':
+                self.poisson_bg_input.rate = self.net_dict["bg_rate"] * self.ext_indegrees
+    #print(self.poisson_bg_input.rate)
     def __create_external_stim_input(self):
         """Creates the external neuronal population if specified in
         ``stim_dict``.
@@ -457,6 +565,7 @@ class Network:
                 start = self.stim_dict["th_start"],
                 stop = self.stim_dict["th_start"] + self.stim_dict["th_duration"],
                 rate = rate,
+                amplitude = self.stim_dict["amplitude"],
                 frequency = self.stim_dict["frequency"],
             )
 
@@ -592,16 +701,31 @@ class Network:
             }
 
             nest.Connect(self.thalamic_population, target_pop, conn_spec=conn_dict_th, syn_spec=syn_dict_th)
-    def __connect_external_stim_input(self):
+    def __connect_external_stim_input(self,connect_type,rate=None):
         """Connects the external pulse packet to the neuronal populations."""
 
         if nest.Rank() == 0:
             print("Connecting DC generators.")
         j = 0
-        for i, target_pop in enumerate(self.pops):
-            if i in self.stim_dict["target_pop"]:
-                nest.Connect(self.ppgs[j], target_pop, "one_to_one", syn_spec= {"weight": self.stim_dict["weight"]})
-                j = j+1
+        if connect_type == 'all':
+            for i, target_pop in enumerate(self.pops):
+                if i in self.stim_dict["target_pop"]:
+                    nest.Connect(self.ppgs[j],target_pop,"one_to_one",syn_spec= {"weight": self.stim_dict["weight"]})
+                    j = j+1
+        elif connect_type == 'random':
+            for i, target_pop in enumerate(self.pops):
+                if i in self.stim_dict["target_pop"]:
+                    nest.Connect(self.ppgs[j],target_pop,"",syn_spec= {"weight": self.stim_dict["weight"]})
+                    j = j+1
+        elif connect_type == 'fixed':
+            if rate != None:
+                self.stim_dict["rate"] = rate
+            else:
+                self.stim_dict["rate"] = self.stim_dict["rate"]
+            for i, target_pop in enumerate(self.pops):
+                if i in self.stim_dict["target_pop"]:
+                    nest.Connect(self.ppgs[j],target_pop,"fixed_total_number", rate,syn_spec= {"weight": self.stim_dict["weight"]})
+                    j = j+1
 
     def __connect_dc_stim_input(self):
         """Connects the DC generators to the neuronal populations."""

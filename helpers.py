@@ -183,7 +183,7 @@ def adjust_weights_and_input_to_synapse_scaling(
     return PSC_matrix_new, PSC_ext_new, DC_amp_new
 
 
-def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial):
+def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial,plot):
     """Creates a spike raster plot of the network activity.
 
     Parameters
@@ -227,12 +227,16 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial):
             print("  Only spikes of neurons in steps of {} are shown.".format(stp))
 
         if trial ==0 :
-            fig = plt.figure(figsize=(11,16))
+            if plot:
+                fig = plt.figure(figsize=(12,7))
+            else:
+                fig = plt.figure(figsize=(11,16))
             ax = fig.add_subplot(111,label='1')
             ax2 = fig.add_subplot(111, label = "2", frame_on=False)
 
         for i, n in enumerate(sd_names):
             times = data[i]["time_ms"]
+            times_currents = np.linspace(begin,end,num=int((end-begin)/0.2))
             neurons = np.abs(data[i]["sender"] - last_node_id) + 1
             pop_activity, bins = np.histogram(times,bins=int((end-begin)/addons.analysis_dict["convolve_bin_size"]))
             window = signal.windows.gaussian(M[i],std[i])
@@ -241,29 +245,65 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial):
             highcut_gamma = 40 #95
             #filtered_signal[i] =  addons.butter_bandpass_filter(filtered_signal[i],lowcut= lowcut_gamma,highcut=highcut_gamma,fs=1000,order=3)
             norm = np.linalg.norm(filtered_signal[i])
-            high = neurons[-1]
-            low = neurons[0]
-            filtered_signal_plot = filtered_signal[i] / norm * 5 * np.abs(high - low) + high
-            if i%2!=0:
-                label_pos[i] = filtered_signal_plot[0]
+            try:
+                high = neurons[-1]
+            except  IndexError:
+                high = 0
+            try:
+                low = neurons[0]
+            except IndexError:
+                low = 0
+            if low == high:
+                filtered_signal_plot = 0
             else:
-                filtered_signal_plot = filtered_signal[i] /norm * 5 * np.abs(high - low) + label_pos[i]
+                if plot:
+                    filtered_signal_plot = filtered_signal[i] / norm * 3 * np.abs(high - low) + high
+                else: 
+                    filtered_signal_plot = filtered_signal[i] / norm * 5 * np.abs(high - low) + high
+                if i%2!=0:
+                    label_pos[i] = filtered_signal_plot[0]
+                else:
+                    if plot:
+                        filtered_signal_plot = filtered_signal[i] /norm * 3 * np.abs(high - low) + label_pos[i]
+                    else:
+                        filtered_signal_plot = filtered_signal[i] /norm * 5 * np.abs(high - low) + label_pos[i]
             if trial ==0:
-
-                ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
-                ax2.plot(filtered_signal_plot, linewidth= 3, color=bar_labels[i])
+                if plot:
+                    if i == 2:
+                       ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
+                       ax2.plot(times_currents,filtered_signal_plot, linewidth= 3, color=bar_labels[i])
+                else:
+                    ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
+                    ax2.plot(times_currents,filtered_signal_plot, linewidth= 3, color=bar_labels[i])
 
 
         if trial==0:
-            ax.set_xlabel("time (ms)", fontsize=fs)
-            ax.set_yticks(label_pos, ylabels, fontsize=fs)
-            ax2.set_xticks([])
-            ax.set_xlim(begin,end)
-            ax2.set_yticks([])
-            ax2.set_xlim(0,len(filtered_signal_plot))
-            ax.set_ylim(0,last_node_id)
-            ax2.set_ylim(0,last_node_id)
-            plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
+            if plot:
+                test = []
+                test = np.append(test, label_pos[2])
+                test2 = []
+                test2 = np.append(test2, ylabels[2])
+                ax.set_xlabel("time [ms]", fontsize=fs)
+                ax.set_ylabel("neurons", fontsize=fs)
+                plt.title("Sample raster plot of L4E neurons", fontsize=fs)
+                ax.set_yticks(test, test2, fontsize=fs)
+                ax2.set_xticks([])
+                ax.set_xlim(begin,end)
+                ax2.set_yticks([])
+                ax2.set_xlim(begin,end)
+                #ax.set_ylim(0,last_node_id)
+                #ax2.set_ylim(0,last_node_id)
+                plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
+            else:
+                ax.set_xlabel("time (ms)", fontsize=fs)
+                ax.set_yticks(label_pos, ylabels, fontsize=fs)
+                ax2.set_xticks([])
+                ax.set_xlim(begin,end)
+                ax2.set_yticks([])
+                ax2.set_xlim(begin,end)
+                ax.set_ylim(0,last_node_id)
+                ax2.set_ylim(0,last_node_id)
+                plt.savefig(os.path.join(path, "raster_plot.png"), dpi=300)
     else:
         color_list = bar_labels
         ylabels = ["L2/3","L4","L5","L6"]
@@ -308,6 +348,9 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial):
         #filtered_signal_complete[i] = (filtered_signal_complete[i] - np.min(filtered_signal_complete[i])) / (np.max(filtered_signal_complete[i])-np.min(filtered_signal_complete[i]))
         
         np.savetxt(path +"measurements/pop_activities/pop_activity_"+str(i)+".dat",filtered_signal_complete[i])
+
+        if not os.path.exists(path + "measurements/times/"):
+            os.makedirs(path + "measurements/times/")
         np.savetxt(path +"measurements/times/times_"+str(i)+".dat",times_a[i])
 
     return filtered_signal_complete, times_a

@@ -5,15 +5,15 @@ stim_dict = {
     # turn thalamic input on or off (True or False)
     "thalamic_input": False,
 
-    "external_input": True,
+    "external_input": False,
 
-    "target_pop": [2],
+    "target_pop": [2], #2 for L4 6 for L6
 
     "input_type": 'pulse_packet', #poisson, gaussian_pulse, gamma, pulse packet
     # start of the thalamic input (in ms)
     "th_start": 500.0,
     # duration of the thalamic input (in ms)
-    "th_duration": 5000.0,
+    "th_duration": 2500.0,
     # rate of the thalamic input (in spikes/s)
     "th_rate": 12.0,
 
@@ -45,9 +45,11 @@ stim_dict = {
 
     "spike_weights": 0.7,
 
-    "frequency": 20,
+    "amplitude": 10,
 
-    "activity": 600, #num of spikes in one pulse packet
+    "frequency": 80,
+
+    "activity": 1000, #num of spikes in one pulse packet
     "sdev": 1.0, #width of pulse packet (ms)
     "weight": 2.0, #psp amplitude (mV)
     "pulsetime": 1000, #occurrence time (center) of pulse packet(in ms)

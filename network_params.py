@@ -89,13 +89,13 @@ net_dict = {
     # 'optimized': population-specific mean and standard deviation, allowing a
     #              reduction of the initial activity burst in the network
     #              (default)
-    "V0_type": "optimized",
+    "V0_type": "original",
     # parameters of the neuron model
     "neuron_params": {
         # membrane potential average for the neurons (in mV)
         "V0_mean": {"original": -58.0, "optimized": [-68.28, -63.16, -63.33, -63.45, -63.11, -61.66, -66.72, -61.43]},
         # standard deviation of the average membrane potential (in mV)
-        "V0_std": {"original": 10.0, "optimized": [5.36, 4.57, 4.74, 4.94, 4.94, 4.55, 5.46, 4.48]},
+        "V0_std": {"original": 20.0, "optimized": [5.36, 4.57, 4.74, 4.94, 4.94, 4.55, 5.46, 4.48]},
         # reset membrane potential of the neurons (in mV)
         "E_L": -65.0,
         # threshold potential of the neurons (in mV)

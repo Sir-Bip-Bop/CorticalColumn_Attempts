@@ -24,3 +24,7 @@ data_inhibitory_strength
 data_refractory_period
 data_gamma_stimulation
 data_step_stimulation
+data_exin_big
+data_background_rate_big
+data_background_rate_jesus
+stimulation
