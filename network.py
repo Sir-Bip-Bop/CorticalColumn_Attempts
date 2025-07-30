@@ -223,7 +223,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def  evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [10,10,10,10,10,10,10,10],std= [3,3,3,3,3,3,3,3],trial=10,raster=True,plot=False):
+    def  evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,20,20,20],std= [5,5,5,5,5,5,5,5],trial=10,raster=True,plot=False):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -493,12 +493,12 @@ class Network:
         self.poisson_bg_input = nest.Create("poisson_generator", n=self.num_pops)
         if self.bg_rate:
             if rate == 'random':
-                self.poisson_bg_input.rate = np.abs(np.random.normal(loc=self.bg_rate,scale=1)) * self.ext_indegrees
+                self.poisson_bg_input.rate = np.abs(np.random.normal(loc=self.bg_rate,scale=0.7)) * self.ext_indegrees
             if rate == 'fixed':
                 self.poisson_bg_input.rate = self.bg_rate * self.ext_indegrees
         else:
             if rate == 'random':
-                self.poisson_bg_input.rate =np.random.normal(loc= self.net_dict["bg_rate"],scale=1)  * self.ext_indegrees
+                self.poisson_bg_input.rate =np.random.normal(loc= self.net_dict["bg_rate"],scale=0.7)  * self.ext_indegrees
             if rate == 'fixed':
                 self.poisson_bg_input.rate = self.net_dict["bg_rate"] * self.ext_indegrees
     #print(self.poisson_bg_input.rate)

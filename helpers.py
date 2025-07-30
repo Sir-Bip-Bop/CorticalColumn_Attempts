@@ -271,10 +271,16 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial,plot):
                 if plot:
                     if i == 2:
                        ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
-                       ax2.plot(times_currents,filtered_signal_plot, linewidth= 3, color=bar_labels[i])
+                       try:
+                        ax2.plot(times_currents,filtered_signal_plot, linewidth= 3, color=bar_labels[i])
+                       except ValueError:
+                        print("ValueError: times_currents and filtered_signal_plot have different lengths. Check the input data.")                        
                 else:
                     ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
-                    ax2.plot(times_currents,filtered_signal_plot, linewidth= 3, color=bar_labels[i])
+                    try:
+                        ax2.plot(times_currents,filtered_signal_plot, linewidth= 3, color=bar_labels[i])
+                    except ValueError:
+                        print("ValueError: times_currents and filtered_signal_plot have different lengths. Check the input data.")
 
 
         if trial==0:
