@@ -375,7 +375,7 @@ def analyse_firing_rates():
 
 #def prepare_data(data_pop,ex_current_pop,in_current_pop):
 def prepare_data(data_pop):
-    sd_names, node_ids, data = helpers.__load_spike_times("data_og/","spike_recorder",analysis_dict["analysis_start"], analysis_dict["analysis_end"])
+    sd_names, node_ids, data = helpers.__load_spike_times("data_background_rate_jesus/","spike_recorder",analysis_dict["analysis_start"], analysis_dict["analysis_end"])
 
     times = {}
     data_voltages = { }
