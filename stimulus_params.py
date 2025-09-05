@@ -5,7 +5,7 @@ stim_dict = {
     # turn thalamic input on or off (True or False)
     "thalamic_input": False,
 
-    "external_input": False,
+    "external_input": True,
 
     "target_pop": [2], #2 for L4 6 for L6
 

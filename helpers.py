@@ -204,7 +204,7 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial,plot):
     None
 
     """
-    fs = 18  # fontsize
+    fs = 24  # fontsize
     ylabels = ["L2/3E", "L2/3I", "L4E", "L4I", "L5E", "L5I", "L6E","L6I"]
     color_list = ['#d6949c', '#f5b7a4', '#fcd4ac', '#ffeebf', '#edf5c9', '#d2ded1', '#b4c2be', '#7da4bd']
     bar_labels =  ['#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5', '#3288bd']
