@@ -212,8 +212,11 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial,plot):
     sd_names, node_ids, data = __load_spike_times(path, name, begin, end)
     last_node_id = node_ids[-1, -1]
     mod_node_ids = np.abs(node_ids - last_node_id) + 1
+    neuron_pos = np.zeros(8)
+    for i in np.arange(0,8,1):
+        neuron_pos[i] = np.abs(node_ids[i,1] - node_ids[-1,1]) +1
     label_pos = np.zeros(8)
-
+    print(neuron_pos)
     for i in np.arange(0,8,1):
         if i%2 == 0:
             label_pos[i] = (mod_node_ids[i, 0] + mod_node_ids[i + 1, 1]) / 2.0
@@ -277,6 +280,7 @@ def plot_raster(path, name, begin, end, N_scaling,binned,M, std,trial,plot):
                         print("ValueError: times_currents and filtered_signal_plot have different lengths. Check the input data.")                        
                 else:
                     ax.plot(times[::stp], neurons[::stp], ".", color=color_list[i],alpha = 0.3)
+                    ax.axhline(y=neuron_pos[i], color= 'black', linestyle='--', alpha=1)
                     try:
                         ax2.plot(times_currents,filtered_signal_plot, linewidth= 3, color=bar_labels[i])
                     except ValueError:

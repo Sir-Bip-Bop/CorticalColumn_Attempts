@@ -12,6 +12,7 @@ data_og/
 */spike_rates/
 */times/
 */sample_voltages/
+DTI_data/
 test.py
 __pycache__
 output_1.png
