@@ -29,7 +29,7 @@ class Network:
 
     """
 
-    def __init__(self, sim_dict, net_dict, stim_dict=None,path=None,bg_rate =None,ref_period=None,matrix=None,PSP_mean=None,th_rate=0,stim_time=None):
+    def __init__(self, sim_dict, net_dict, stim_dict=None,path=None,bg_rate =None,ref_period=None,matrix=None,PSP_mean=None,th_rate=0,stim_time=None,dc=None):
         self.sim_dict = sim_dict
         self.net_dict = net_dict
         self.stim_dict = stim_dict
@@ -45,6 +45,7 @@ class Network:
         self.ref_period = ref_period
         self.bg_rate = bg_rate
         self.stim_time = stim_time
+        self.dc = dc
         if nest.Rank() == 0: #this function returns the MPI rank of the local process, which is 0 in the case where the network has not yet been initialised
             if os.path.isdir(self.data_path):
                 message = "  Directory already existed."
@@ -61,7 +62,7 @@ class Network:
         # initialize the NEST kernel
         self.__setup_nest()
 
-    def create(self,bg_rate=None,rate='random'):
+    def create(self,bg_rate=None,dc=None,rate='random'):
         """Creates all network nodes.
 
         Neuronal populations and recording and stimulation devices are created.
@@ -78,7 +79,7 @@ class Network:
             if self.stim_time != None:
                 self.__create_external_stim_input()
         if self.stim_dict["dc_input"]:
-            self.__create_dc_stim_input()
+            self.__create_dc_stim_input(dc=dc)
 
     def create_2(self):
         """Creates all network nodes.
@@ -223,7 +224,7 @@ class Network:
 
         nest.Simulate(t_sim)
 
-    def  evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [20,20,20,20,20,20,20,20],std= [5,5,5,5,5,5,5,5],trial=10,raster=True,plot=False):
+    def  evaluate(self, raster_plot_interval, firing_rates_interval,binned=False,M= [50,50,50,50,50,50,50,50],std= [10,10,10,10,10,10,10,10],trial=10,raster=True,plot=False):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -430,7 +431,6 @@ class Network:
         """
         if nest.Rank() == 0:
             print("Creating recording devices.")
-
         if "spike_recorder" in self.sim_dict["rec_dev"]:
             if nest.Rank() == 0:
                 print("  Creating spike recorders.")
@@ -461,6 +461,7 @@ class Network:
                 "stop": self.sim_dict["stop"],
             }
             self.ex_ammeters = nest.Create("voltmeter",n=self.num_pops,params=ex_dict)
+
 
         if "synaptic_in" in self.sim_dict["rec_dev"]:
             if nest.Rank() == 0:
@@ -569,13 +570,15 @@ class Network:
                 frequency = self.stim_dict["frequency"],
             )
 
-    def __create_dc_stim_input(self):
+    def __create_dc_stim_input(self,dc=None):
         """Creates DC generators for external stimulation if specified
         in ``stim_dict``.
 
         The final amplitude is the ``stim_dict['dc_amp'] * net_dict['K_ext']``.
 
         """
+        if dc:
+            self.stim_dict["dc_amp"] = dc
         dc_amp_stim = self.stim_dict["dc_amp"] * self.net_dict["K_ext"]
 
         if nest.Rank() == 0:
@@ -587,6 +590,9 @@ class Network:
             "stop": self.stim_dict["dc_start"] + self.stim_dict["dc_dur"],
         }
         self.dc_stim_input = nest.Create("dc_generator", n=self.num_pops, params=dc_dict)
+        #self.dc_stim_input = nest.Create("sinusoidal_gamma_generator", n=self.num_pops, params={"rate": dc_amp_stim,
+                                                                                               #"amplitude": self.stim_dict["dc_amplitude"],
+                                                                                               #"frequency": self.stim_dict["dc_frequency"]})
 
     def __connect_neuronal_populations(self):
         """Creates the recurrent connections between neuronal populations."""

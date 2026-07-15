@@ -5,7 +5,7 @@ stim_dict = {
     # turn thalamic input on or off (True or False)
     "thalamic_input": False,
 
-    "external_input": True,
+    "external_input": False,
 
     "target_pop": [2], #2 for L4 6 for L6
 
@@ -36,18 +36,22 @@ stim_dict = {
     # turn DC input on or off (True or False)
     "dc_input": False,
     # start of the DC input (in ms)
-    "dc_start": 650.0,
+    "dc_start": 1350.0,
     # duration of the DC input (in ms)
-    "dc_dur": 100.0,
+    "dc_dur": 200.0,
     # amplitude of the DC input (in pA); final amplitude is population-specific
     # and will be obtained by multiplication with 'K_ext'
-    "dc_amp": 0.3,
+    "dc_amplitude": 30,
+
+    "dc_amp": 30,
+
+    "dc_frequency": 1000,
 
     "spike_weights": 0.7,
 
-    "amplitude": 10,
+    "amplitude": 100,
 
-    "frequency": 80,
+    "frequency": 1000,
 
     "activity": 1000, #num of spikes in one pulse packet
     "sdev": 1.0, #width of pulse packet (ms)

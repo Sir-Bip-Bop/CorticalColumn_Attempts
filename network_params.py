@@ -65,7 +65,7 @@ net_dict = {
     # relative standard deviation of the weight
     "weight_rel_std": 0.1,
     # relative inhibitory weight
-    "g": -4,
+    "g": -4, #4
     # mean delay of excitatory connections (in ms)
     "delay_exc_mean": 1.5,
     # mean delay of inhibitory connections (in ms)

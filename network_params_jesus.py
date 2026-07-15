@@ -20,10 +20,33 @@ def get_exc_inh_matrix(val_exc, val_inh, num_pops):
 
     """
     matrix = np.zeros((num_pops, num_pops))
+    #matrix[:, 0:num_pops:2] = np.random.normal(loc = val_exc, scale = 0.2, size = (num_pops, (num_pops+1)//2))
     matrix[:, 0:num_pops:2] = val_exc
     matrix[:, 1:num_pops:2] = val_inh
     return matrix
 
+def get_exc_inh_matrix_2(val_exc, val_inh, num_pops):
+    """Creates a matrix for excitatory and inhibitory values.
+
+    Parameters
+    ----------
+    val_exc
+        Excitatory value.
+    val_inh
+        Inhibitory value.
+    num_pops
+        Number of populations.
+
+    Returns
+    -------
+    matrix
+        A matrix of of size (num_pops x num_pops).
+
+    """
+    matrix = np.zeros((num_pops, num_pops))
+    matrix[:, 0:num_pops:2] = val_exc
+    matrix[:, 1:num_pops:2] = val_inh
+    return matrix
 
 net_dict = {
     # factor to scale the number of neurons
@@ -75,10 +98,10 @@ net_dict = {
     "delay_rel_std": 0.5,
     # turn Poisson input on or off (True or False)
     # if False: DC input is applied for compensation
-    "poisson_input": True, #True,
+    "poisson_input": False, #True,
     # indegree of external connections to the different populations (same order
     # as in 'populations')
-    "K_ext": np.array([0, 0, 2100, 0, 0, 0, 0, 0]),
+    "K_ext": np.array([1600, 1500, 2100, 1900, 2000, 1900, 2900, 2100]),
     # rate of the Poisson generator (in spikes/s)
     "bg_rate":8.0, #8.0
     # delay from.0 the Poisson generator to the network (in ms)
@@ -126,7 +149,7 @@ updated_dict = {
     # matrix of mean PSPs
     "PSP_matrix_mean": PSP_matrix_mean,
     # matrix of mean delays
-    "delay_matrix_mean": get_exc_inh_matrix(
+    "delay_matrix_mean": get_exc_inh_matrix_2(
         net_dict["delay_exc_mean"], net_dict["delay_inh_mean"], len(net_dict["populations"])
     ),
 }

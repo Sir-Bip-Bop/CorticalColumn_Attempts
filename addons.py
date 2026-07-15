@@ -23,14 +23,14 @@ plt.style.use(['science'])
 
 analysis_dict = {
     "analysis_start": 500, #900  
-    "analysis_end": 60500, #1100
+    "analysis_end": 5500, #1100 #60500
 
     "start_periodic": 950,
     "end_periodic": 1450,
 
     "name": "connectivity_alter_no_stimulus/", 
     "synchrony_start": 500, #1000
-    "synchrony_end": 60500, #1100
+    "synchrony_end": 5500, #1100 #60500
 
     
     "convolve_bin_size": 0.2,
@@ -375,7 +375,7 @@ def analyse_firing_rates():
 
 #def prepare_data(data_pop,ex_current_pop,in_current_pop):
 def prepare_data(data_pop):
-    sd_names, node_ids, data = helpers.__load_spike_times("data_background_rate_jesus/","spike_recorder",analysis_dict["analysis_start"], analysis_dict["analysis_end"])
+    sd_names, node_ids, data = helpers.__load_spike_times("data_og/","spike_recorder",analysis_dict["analysis_start"], analysis_dict["analysis_end"])
 
     times = {}
     data_voltages = { }
